@@ -60,6 +60,26 @@ void readData(CLAM::Channelizer* channels[]) {
 	
 }
 
+// PGAO AMP ADJUST
+void adjustAmps(CLAM::Channelizer* channels[], CLAM::Processing* amps[]){
+	int j=0.5;
+	while(true){
+		for(int i=0; i<4; i++){
+			if(IS_START_TALKING(channels[i]->state)||IS_STILL_TALKING(channels[i]->state)){
+	
+				while(channels[i]->logEnergy<50) {
+					j+=0.1;
+					CLAM::SendFloatToInControl(*(amps[i]), "Gain", j);
+				}
+				while(channels[i]->logEnergy>60){
+					j-=0.1;
+					CLAM::SendFloatToInControl(*(amps[i]), "Gain", j);
+				}
+			}
+		}
+	}
+}
+
 // Beeps any channels that have been overlapping for at least 5 seconds and do not have the floor
 // Stops beeping after 3 seconds and starts all over again
 inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
@@ -294,6 +314,16 @@ int main( int argc, char** argv )
 		CLAM::SendFloatToInControl(mixer2, "Gain 3",0.0);
 		CLAM::SendFloatToInControl(mixer3, "Gain 3",0.0);
 		CLAM::SendFloatToInControl(mixer4, "Gain 3",0.0);
+
+		CLAM::Processing& amp0 = network.GetProcessing("Amp");
+		CLAM::Processing& amp1 = network.GetProcessing("Amp_1");
+		CLAM::Processing& amp2 = network.GetProcessing("Amp_2");
+		CLAM::Processing& amp3 = network.GetProcessing("Amp_3");
+		CLAM::Processing* amps[4] = {&amp0, &amp1, &amp2, &amp3};
+		for(int i = 0; i < 4; i++) {
+			CLAM::SendFloatToInControl(*(amps[i]), "Gain", 0.5);
+		}
+
 		
 		CLAM::Processing& generator = network.GetProcessing("Generator");
 		//CLAM::SendFloatToInControl(generator, "Amplitude", 1.0);
@@ -354,6 +384,7 @@ int main( int argc, char** argv )
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
+			//adjustAmps(channels, amps);
 		}
 		delete [] channels;
 		delete [] mixers;

@@ -39,7 +39,7 @@ class Channelizer : public CLAM::Processing
 {
 	AudioInPort _input;
 	double _max;
-	
+	int loudSoft; // 0 = ok, -1 = mic too soft, -2 = speaking too soft
 	float _average;
 	unsigned _bufferCount;
 	std::string _name;
@@ -47,9 +47,11 @@ class Channelizer : public CLAM::Processing
 	unsigned int windowSize;
 	short *pData;
 	unsigned windowSNS; //speech or no speech
-	// NEW: changed from int to float
 	float total;
-
+	float totalEnergySpeaking; //cchien total log energy when speaking (each buffer)
+	float energySpeakingCount; //cchien used in log energy average
+	float totalEnergyNotSpeaking; //cchien total log energy noise floor (each buffer)
+	float energyNotSpeakingCount; //cchien used in log energy noise floor average
 
 public:
 	double logEnergy;
@@ -77,6 +79,9 @@ public:
 		totalSpeakingSuccessfulInterrupts = 0;				// TSSI: # times successful barge in
 		totalSpeakingUnsuccessfulInterrupts = 0;			// TSUI: # times unsuccessful barge in
 		_average = 0.0;		
+
+		loudSoft = 0;
+		
 		diffTime = 0.0;
 		gettimeofday(&_starttime,0x0);		
 		gettimeofday(&_endtime,0x0);
@@ -89,6 +94,12 @@ public:
 		pData = new short[windowSize];	
 		windowSNS = 0;
 		total = 0;
+
+		totalEnergySpeaking = 0.0; //cchien total log energy when speaking (each buffer)
+		energySpeakingCount = 0.0; //cchien used in log energy average
+		totalEnergyNotSpeaking = 0.0; //cchien total log energy noise floor (each buffer)
+		energyNotSpeakingCount = 0.0; //cchien used in log energy noise floor average
+
 		state = NOT_TALKING;
 		floorAction = NO_FLOOR;
 		overlapCounter = 0;
@@ -116,7 +127,15 @@ public:
 			if (current<-_max) _max=-current;
 		}
 		logEnergy = 60 + 20*log(_max);
-		if (logEnergy > 15) bufferSNS = 1;
+		if (logEnergy > 15) {
+			bufferSNS = 1;
+			totalEnergySpeaking += logEnergy; //cchien
+			energySpeakingCount++; // used in log energy average
+		}
+		else {
+			totalEnergyNotSpeaking += logEnergy;
+			energyNotSpeakingCount++;
+		}
 		_bufferCount++;
 		_max = 1e-10;
 
@@ -173,14 +192,36 @@ public:
 			
 			printSpeakerStats();
 			writeSpeakerStats();
+			writeVolStats();
 			
 			diffTime = 0.0;
 		}
 		else if (windowSNS<1 && IS_STOP_TALKING(state)) {
 			//std::cout << "stopped talking!\n";
 			state = NOT_TALKING;
-			newUtterance = false;
+			newUtterance = false; // TODO
 		}
+
+		//cchien signal to noise ratio estimate
+		float energySpeakingAvg = totalEnergySpeaking / energySpeakingCount;
+		float energyNotSpeakingAvg = totalEnergyNotSpeaking / energyNotSpeakingCount;
+		float signalToNoise = fabs(energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg;
+
+		// 
+		float lowNoise = -10.0;
+		float highNoise = 0.0;
+		float lowSR = 5;
+		float highSR = 20;
+
+		if (energyNotSpeakingAvg < lowNoise) {
+			// -2 = speaking too soft, -1 = mic to soft
+			(signalToNoise < lowSR) ? loudSoft = -2 : loudSoft = -1;
+		}
+		// Otherwise you're good
+		else {
+			loudSoft = 0;
+		}
+
 		//std::cout << "\t windowSNS: " << windowSNS << ", state: " << std::hex << state << std::endl;
 		gettimeofday(&_endtime,0x0);		
 		timeval_subtract(&_timediff, &_endtime, &_sessionStart);
@@ -234,6 +275,20 @@ public:
 	}
 	std::string getPName() {
 		return _name;
+	}
+
+	//cchien
+	void writeVolStats() {
+		std::ofstream volFile;
+		volFile.open("VolumeData.log", std::ios::app);
+		float energySpeakingAvg = totalEnergySpeaking / energySpeakingCount;
+		float energyNotSpeakingAvg = totalEnergyNotSpeaking / energyNotSpeakingCount;
+		float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
+		volFile << "Speaking\tNot Speaking\tS-to-R\n";
+		std::cout << "Speaking\tNot Speaking\tS-to-R\n";
+		volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+		std::cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+		volFile.close();
 	}
 	
 	inline void printSpeakerStats() {
