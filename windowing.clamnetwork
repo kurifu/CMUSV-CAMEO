@@ -7,39 +7,35 @@ p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=" font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;"&gt;
 &lt;p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Ubuntu'; font-size:11pt;"&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
 
-<<<<<<< HEAD
-  <processing id="Amp" position="254,45" size="159,57" type="AudioAmplifier">
+  <processing id="Amp" position="314,121" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="Amp_1" position="254,97" size="159,57" type="AudioAmplifier">
+  <processing id="Amp_1" position="314,173" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="Amp_2" position="254,149" size="159,57" type="AudioAmplifier">
+  <processing id="Amp_2" position="314,225" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="Amp_3" position="254,201" size="159,57" type="AudioAmplifier">
+  <processing id="Amp_3" position="314,277" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="Amplitude" position="185,561" size="184,74" type="OutControlSender">
-=======
-  <processing id="Amplitude" position="616,601" size="184,74" type="OutControlSender">
->>>>>>> background_noise
+  <processing id="Amplitude" position="97,656" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>0.5</Default>
     <Max>1</Max>
@@ -48,167 +44,187 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-<<<<<<< HEAD
-  <processing id="AudioMixer" position="717,281" size="135,94" type="AudioMixer">
-    <NumberOfInPorts>4</NumberOfInPorts>
-    <DefaultGains size="4">1 1 1 1</DefaultGains>
-  </processing>
-
-  <processing id="AudioMixer_1" position="707,404" size="150,94" type="AudioMixer">
-    <NumberOfInPorts>4</NumberOfInPorts>
-    <DefaultGains size="4">1 1 1 1</DefaultGains>
-  </processing>
-
-  <processing id="AudioMixer_2" position="713,525" size="150,94" type="AudioMixer">
-    <NumberOfInPorts>4</NumberOfInPorts>
-    <DefaultGains size="4">1 1 1 1</DefaultGains>
-  </processing>
-
-  <processing id="AudioMixer_3" position="710,652" size="150,94" type="AudioMixer">
-    <NumberOfInPorts>4</NumberOfInPorts>
-    <DefaultGains size="4">1 1 1 1</DefaultGains>
-  </processing>
-
-  <processing id="AudioSink" position="1277,281" size="128,111" type="AudioSink">
-=======
-  <processing id="AudioAmplifier" position="303,469" size="159,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier" position="246,420" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_1" position="295,518" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_1" position="238,469" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_2" position="294,561" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_2" position="237,512" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_3" position="294,608" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_3" position="237,559" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
     <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioMixer" position="1161,258" size="135,110" type="AudioMixer">
+  <processing id="AudioMixer" position="649,214" size="135,110" type="AudioMixer">
     <NumberOfInPorts>5</NumberOfInPorts>
     <DefaultGains size="5">1 1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="AudioMixer_1" position="1151,385" size="150,110" type="AudioMixer">
+  <processing id="AudioMixer_1" position="646,342" size="150,110" type="AudioMixer">
     <NumberOfInPorts>5</NumberOfInPorts>
     <DefaultGains size="5">1 1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="AudioMixer_2" position="1157,502" size="150,110" type="AudioMixer">
+  <processing id="AudioMixer_2" position="647,465" size="150,110" type="AudioMixer">
     <NumberOfInPorts>5</NumberOfInPorts>
     <DefaultGains size="5">1 1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="AudioMixer_3" position="1154,629" size="150,110" type="AudioMixer">
+  <processing id="AudioMixer_3" position="649,567" size="150,110" type="AudioMixer">
     <NumberOfInPorts>5</NumberOfInPorts>
     <DefaultGains size="5">1 1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="AudioSink" position="1721,258" size="128,111" type="AudioSink">
->>>>>>> background_noise
+  <processing id="AudioSink" position="1140,271" size="128,111" type="AudioSink">
     <NSinks>4</NSinks>
   </processing>
 
-  <processing id="AudioSource" position="33,289" size="142,108" type="AudioSource">
+  <processing id="AudioSource" position="50,283" size="142,108" type="AudioSource">
     <NSources>4</NSources>
   </processing>
 
-  <processing id="Channelizer" position="1084,32" size="133,56" type="Channelizer"/>
+  <processing id="Channelizer" position="639,-2" size="134,57" type="Channelizer"/>
 
-  <processing id="Channelizer_1" position="1082,79" size="137,56" type="Channelizer"/>
+  <processing id="Channelizer_1" position="639,45" size="149,57" type="Channelizer"/>
 
-  <processing id="Channelizer_2" position="1082,129" size="137,56" type="Channelizer"/>
+  <processing id="Channelizer_2" position="639,95" size="149,57" type="Channelizer"/>
 
-  <processing id="Channelizer_3" position="1085,180" size="137,56" type="Channelizer"/>
+  <processing id="Channelizer_3" position="639,143" size="149,57" type="Channelizer"/>
 
-  <processing id="Generator" position="771,704" size="168,57" type="SimpleOscillator">
+  <processing id="Generator" position="340,664" size="168,57" type="SimpleOscillator">
     <Frequency>440</Frequency>
     <Amplitude>1</Amplitude>
     <Phase>0</Phase>
     <SamplingRate>16000</SamplingRate>
   </processing>
 
-<<<<<<< HEAD
-  <processing id="MonoAudioFileWriter" position="975,226" size="176,56" type="MonoAudioFileWriter">
-=======
-  <processing id="MonoAudioFileWriter" position="1419,203" size="176,56" type="MonoAudioFileWriter">
->>>>>>> background_noise
-    <TargetFile>/home/cliff/Desktop/clam_output/channel1_output</TargetFile>
-    <SampleRate>44100</SampleRate>
-  </processing>
+  <processing id="Oscilloscope" position="868,521" size="347,238" type="Oscilloscope"/>
 
-<<<<<<< HEAD
-  <processing id="MonoAudioFileWriter_1" position="982,363" size="190,56" type="MonoAudioFileWriter">
-=======
-  <processing id="MonoAudioFileWriter_1" position="1426,340" size="190,56" type="MonoAudioFileWriter">
->>>>>>> background_noise
-    <TargetFile>/home/cliff/Desktop/clam_output/channel2_output</TargetFile>
-    <SampleRate>44100</SampleRate>
-  </processing>
-
-<<<<<<< HEAD
-  <processing id="MonoAudioFileWriter_2" position="985,502" size="190,56" type="MonoAudioFileWriter">
-=======
-  <processing id="MonoAudioFileWriter_2" position="1429,479" size="190,56" type="MonoAudioFileWriter">
->>>>>>> background_noise
-    <TargetFile>/home/cliff/Desktop/clam_output/channel3_output</TargetFile>
-    <SampleRate>44100</SampleRate>
-  </processing>
-
-<<<<<<< HEAD
-  <processing id="MonoAudioFileWriter_3" position="984,638" size="190,56" type="MonoAudioFileWriter">
-=======
-  <processing id="MonoAudioFileWriter_3" position="1428,615" size="190,56" type="MonoAudioFileWriter">
->>>>>>> background_noise
-    <TargetFile>/home/cliff/Desktop/clam_output/channel4_output</TargetFile>
-    <SampleRate>44100</SampleRate>
-  </processing>
-
-  <processing id="Oscilloscope" position="1669,516" size="347,238" type="Oscilloscope"/>
-
-  <processing id="Tones" position="498,503" size="134,94" type="AudioMixer">
+  <processing id="Tones" position="438,454" size="134,94" type="AudioMixer">
     <NumberOfInPorts>4</NumberOfInPorts>
     <DefaultGains size="4">1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="Track" position="55,457" size="207,57" type="MonoAudioFileReader">
+  <processing id="Track" position="-2,408" size="207,57" type="MonoAudioFileReader">
     <SourceFile>/home/pgao/Desktop/Beats/piano1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
-  <processing id="Track_1" position="51,518" size="222,57" type="MonoAudioFileReader">
+  <processing id="Track_1" position="-6,469" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/pgao/Desktop/Beats/geetar1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
-  <processing id="Track_2" position="50,581" size="222,57" type="MonoAudioFileReader">
+  <processing id="Track_2" position="-7,532" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/pgao/Desktop/Beats/drums1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
-  <processing id="Track_3" position="52,640" size="222,57" type="MonoAudioFileReader">
+  <processing id="Track_3" position="-5,591" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/pgao/Desktop/Beats/bassline1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
+
+  <port_connection>
+    <out>Amp.Audio Output</out>
+    <in>AudioMixer_1.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp.Audio Output</out>
+    <in>AudioMixer_2.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp.Audio Output</out>
+    <in>AudioMixer_3.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp.Audio Output</out>
+    <in>Channelizer.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_1.Audio Output</out>
+    <in>AudioMixer.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_1.Audio Output</out>
+    <in>AudioMixer_2.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_1.Audio Output</out>
+    <in>AudioMixer_3.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_1.Audio Output</out>
+    <in>Channelizer_1.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_2.Audio Output</out>
+    <in>AudioMixer.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_2.Audio Output</out>
+    <in>AudioMixer_1.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_2.Audio Output</out>
+    <in>AudioMixer_3.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_2.Audio Output</out>
+    <in>Channelizer_2.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_3.Audio Output</out>
+    <in>AudioMixer.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_3.Audio Output</out>
+    <in>AudioMixer_1.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_3.Audio Output</out>
+    <in>AudioMixer_2.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Amp_3.Audio Output</out>
+    <in>Channelizer_3.Input</in>
+  </port_connection>
 
   <port_connection>
     <out>AudioAmplifier.Audio Output</out>
@@ -236,18 +252,8 @@ p, li { white-space: pre-wrap; }
   </port_connection>
 
   <port_connection>
-    <out>AudioMixer.Output Audio</out>
-    <in>MonoAudioFileWriter.Samples Write</in>
-  </port_connection>
-
-  <port_connection>
     <out>AudioMixer_1.Output Audio</out>
     <in>AudioSink.2</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioMixer_1.Output Audio</out>
-    <in>MonoAudioFileWriter_1.Samples Write</in>
   </port_connection>
 
   <port_connection>
@@ -256,79 +262,13 @@ p, li { white-space: pre-wrap; }
   </port_connection>
 
   <port_connection>
-    <out>AudioMixer_2.Output Audio</out>
-    <in>MonoAudioFileWriter_2.Samples Write</in>
-  </port_connection>
-
-  <port_connection>
     <out>AudioMixer_3.Output Audio</out>
     <in>AudioSink.4</in>
   </port_connection>
 
   <port_connection>
-    <out>AudioMixer_3.Output Audio</out>
-    <in>MonoAudioFileWriter_3.Samples Write</in>
-  </port_connection>
-
-  <port_connection>
     <out>AudioSource.1</out>
-<<<<<<< HEAD
-    <in>AudioMixer_2.Input 0</in>
-=======
-    <in>Channelizer.Input</in>
->>>>>>> background_noise
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.1</out>
-<<<<<<< HEAD
-    <in>AudioMixer_3.Input 0</in>
-=======
-    <in>AudioMixer_1.Input 0</in>
->>>>>>> background_noise
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.1</out>
-<<<<<<< HEAD
-    <in>Channelizer.Input</in>
-=======
-    <in>AudioMixer_2.Input 0</in>
->>>>>>> background_noise
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.1</out>
-<<<<<<< HEAD
     <in>Amp.Input Audio</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.1</out>
-    <in>AudioMixer_1.Input 0</in>
-=======
-    <in>AudioMixer_3.Input 0</in>
->>>>>>> background_noise
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.2</out>
-    <in>Channelizer_1.Input</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.2</out>
-    <in>AudioMixer_2.Input 1</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.2</out>
-    <in>AudioMixer.Input 0</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.2</out>
-    <in>AudioMixer_3.Input 1</in>
   </port_connection>
 
   <port_connection>
@@ -338,47 +278,7 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>AudioSource.3</out>
-    <in>Channelizer_2.Input</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.3</out>
-    <in>AudioMixer.Input 1</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.3</out>
-    <in>AudioMixer_1.Input 1</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.3</out>
-    <in>AudioMixer_3.Input 2</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.3</out>
     <in>Amp_2.Input Audio</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.4</out>
-    <in>Channelizer_3.Input</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.4</out>
-    <in>AudioMixer.Input 2</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.4</out>
-    <in>AudioMixer_1.Input 2</in>
-  </port_connection>
-
-  <port_connection>
-    <out>AudioSource.4</out>
-    <in>AudioMixer_2.Input 2</in>
   </port_connection>
 
   <port_connection>
@@ -388,7 +288,7 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>Generator.Audio Output</out>
-    <in>AudioMixer_3.Input 3</in>
+    <in>AudioMixer_1.Input 3</in>
   </port_connection>
 
   <port_connection>
@@ -398,7 +298,7 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>Generator.Audio Output</out>
-    <in>AudioMixer_1.Input 3</in>
+    <in>AudioMixer_3.Input 3</in>
   </port_connection>
 
   <port_connection>
@@ -408,12 +308,7 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>Tones.Output Audio</out>
-    <in>AudioMixer_3.Input 4</in>
-  </port_connection>
-
-  <port_connection>
-    <out>Tones.Output Audio</out>
-    <in>AudioMixer_2.Input 4</in>
+    <in>AudioMixer.Input 4</in>
   </port_connection>
 
   <port_connection>
@@ -423,7 +318,12 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>Tones.Output Audio</out>
-    <in>AudioMixer.Input 4</in>
+    <in>AudioMixer_2.Input 4</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Tones.Output Audio</out>
+    <in>AudioMixer_3.Input 4</in>
   </port_connection>
 
   <port_connection>

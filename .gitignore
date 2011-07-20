@@ -1,3 +1,5 @@
 *.plot
 *.o
 MyProgram
+*.log
+.sconsign.dblite
