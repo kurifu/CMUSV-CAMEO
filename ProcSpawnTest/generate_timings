@@ -1,0 +1,5 @@
+gnuplot -persist Timing1.plot 
+gnuplot -persist Timing2.plot
+gnuplot -persist Timing3.plot
+gnuplot -persist Timing4.plot
+gnuplot -persist Timing5.plot

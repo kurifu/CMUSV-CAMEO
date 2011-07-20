@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<network clamVersion="1.4.1" id="Unnamed">
+
+  <description>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd"&gt;
+&lt;html&gt;&lt;head&gt;&lt;meta name="qrichtext" content="1" /&gt;&lt;style type="text/css"&gt;
+p, li { white-space: pre-wrap; }
+&lt;/style&gt;&lt;/head&gt;&lt;body style=" font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;"&gt;
+&lt;p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Ubuntu'; font-size:11pt;"&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
+
+  <processing id="Amplitude" position="185,561" size="184,74" type="OutControlSender">
+    <Min>0</Min>
+    <Default>0.5</Default>
+    <Max>1</Max>
+    <Step>0.01</Step>
+    <ControlRepresentation>Horizontal Slider</ControlRepresentation>
+    <Mapping>Linear</Mapping>
+  </processing>
+
+  <processing id="AudioMixer" position="580,271" size="135,94" type="AudioMixer">
+    <NumberOfInPorts>4</NumberOfInPorts>
+    <DefaultGains size="4">1 1 1 1</DefaultGains>
+  </processing>
+
+  <processing id="AudioMixer_1" position="570,394" size="150,94" type="AudioMixer">
+    <NumberOfInPorts>4</NumberOfInPorts>
+    <DefaultGains size="4">1 1 1 1</DefaultGains>
+  </processing>
+
+  <processing id="AudioMixer_2" position="576,515" size="150,94" type="AudioMixer">
+    <NumberOfInPorts>4</NumberOfInPorts>
+    <DefaultGains size="4">1 1 1 1</DefaultGains>
+  </processing>
+
+  <processing id="AudioMixer_3" position="573,642" size="150,94" type="AudioMixer">
+    <NumberOfInPorts>4</NumberOfInPorts>
+    <DefaultGains size="4">1 1 1 1</DefaultGains>
+  </processing>
+
+  <processing id="AudioSink" position="1140,271" size="128,111" type="AudioSink">
+    <NSinks>4</NSinks>
+  </processing>
+
+  <processing id="AudioSource" position="33,289" size="142,108" type="AudioSource">
+    <NSources>4</NSources>
+  </processing>
+
+  <processing id="Channelizer" position="266,66" size="133,56" type="Channelizer"/>
+
+  <processing id="Channelizer_1" position="266,113" size="137,56" type="Channelizer"/>
+
+  <processing id="Channelizer_2" position="266,163" size="137,56" type="Channelizer"/>
+
+  <processing id="Channelizer_3" position="269,214" size="137,56" type="Channelizer"/>
+
+  <processing id="Generator" position="340,664" size="168,57" type="SimpleOscillator">
+    <Frequency>440</Frequency>
+    <Amplitude>1</Amplitude>
+    <Phase>0</Phase>
+    <SamplingRate>16000</SamplingRate>
+  </processing>
+
+  <processing id="MonoAudioFileWriter" position="838,216" size="176,56" type="MonoAudioFileWriter">
+    <TargetFile>/home/cliff/Desktop/clam_output/channel1_output</TargetFile>
+    <SampleRate>44100</SampleRate>
+  </processing>
+
+  <processing id="MonoAudioFileWriter_1" position="845,353" size="190,56" type="MonoAudioFileWriter">
+    <TargetFile>/home/cliff/Desktop/clam_output/channel2_output</TargetFile>
+    <SampleRate>44100</SampleRate>
+  </processing>
+
+  <processing id="MonoAudioFileWriter_2" position="848,492" size="190,56" type="MonoAudioFileWriter">
+    <TargetFile>/home/cliff/Desktop/clam_output/channel3_output</TargetFile>
+    <SampleRate>44100</SampleRate>
+  </processing>
+
+  <processing id="MonoAudioFileWriter_3" position="847,628" size="190,56" type="MonoAudioFileWriter">
+    <TargetFile>/home/cliff/Desktop/clam_output/channel4_output</TargetFile>
+    <SampleRate>44100</SampleRate>
+  </processing>
+
+  <port_connection>
+    <out>AudioMixer.Output Audio</out>
+    <in>AudioSink.1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer.Output Audio</out>
+    <in>MonoAudioFileWriter.Samples Write</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer_1.Output Audio</out>
+    <in>AudioSink.2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer_1.Output Audio</out>
+    <in>MonoAudioFileWriter_1.Samples Write</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer_2.Output Audio</out>
+    <in>AudioSink.3</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer_2.Output Audio</out>
+    <in>MonoAudioFileWriter_2.Samples Write</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer_3.Output Audio</out>
+    <in>AudioSink.4</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioMixer_3.Output Audio</out>
+    <in>MonoAudioFileWriter_3.Samples Write</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.1</out>
+    <in>AudioMixer_1.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.1</out>
+    <in>AudioMixer_2.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.1</out>
+    <in>AudioMixer_3.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.1</out>
+    <in>Channelizer.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.2</out>
+    <in>AudioMixer.Input 0</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.2</out>
+    <in>AudioMixer_2.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.2</out>
+    <in>AudioMixer_3.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.2</out>
+    <in>Channelizer_1.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.3</out>
+    <in>AudioMixer.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.3</out>
+    <in>AudioMixer_3.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.3</out>
+    <in>AudioMixer_1.Input 1</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.3</out>
+    <in>Channelizer_2.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.4</out>
+    <in>AudioMixer.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.4</out>
+    <in>AudioMixer_2.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.4</out>
+    <in>AudioMixer_1.Input 2</in>
+  </port_connection>
+
+  <port_connection>
+    <out>AudioSource.4</out>
+    <in>Channelizer_3.Input</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Generator.Audio Output</out>
+    <in>AudioMixer.Input 3</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Generator.Audio Output</out>
+    <in>AudioMixer_1.Input 3</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Generator.Audio Output</out>
+    <in>AudioMixer_3.Input 3</in>
+  </port_connection>
+
+  <port_connection>
+    <out>Generator.Audio Output</out>
+    <in>AudioMixer_2.Input 3</in>
+  </port_connection>
+
+  <control_connection>
+    <out>Amplitude.out</out>
+    <in>Generator.Amplitude</in>
+  </control_connection>
+
+</network>

@@ -1,0 +1,14 @@
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>1.0882</speakingLength>
+<totalSpeakingLength>2.04835</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>1.0882</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+
+</MultiPartySpeech>
