@@ -31,6 +31,7 @@ double currOverlapLength = 0;
 struct timeval _currTime, _beepTimeDiff, _overlapStartTime;
 bool isOverlapping = false;
 double diffTime = 0.0;
+const int NUMCHANNELS = 4;
 
 //////////////////////////////
 // CLAM Setup
@@ -50,7 +51,7 @@ int error(const std::string & msg)
 // Determines if each person is dominant or not based on their total Activity Level (how long they've been talking)
 inline void calculateDominance(CLAM::Channelizer* channels[]) {
 	double totalTSL = channels[0]->totalSpeakingLength + channels[1]->totalSpeakingLength + channels[2]->totalSpeakingLength + channels[3]->totalSpeakingLength;
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < NUMCHANNELS; i++) {
 		channels[i]->totalActivityLevel = channels[i]->totalSpeakingLength / totalTSL;
 		(channels[i]->totalActivityLevel >= dominanceThreshold) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
 	}
@@ -60,6 +61,32 @@ void readData(CLAM::Channelizer* channels[]) {
 	
 }
 
+inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]) {
+	while(true) {
+		// Nobody speaking
+		while(IS_NOT_TALKING(channels[0]->state) && IS_NOT_TALKING(channels[1]->state) && IS_NOT_TALKING(channels[2]->state) && IS_NOT_TALKING(channels[3]->state)) {
+			for(int i = 0; i < NUMCHANNELS; i++) {
+				CLAM::SendFloatToInControl(*(tracks[i]), "Gain", 5.0);
+			}
+		}
+
+
+		//Person speaking
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			if(IS_START_TALKING(channels[i]->state)) {
+				CLAM::SendFloatToInControl(*(tracks[i]), "Gain", 5.0);
+			}
+			// TODO
+			else if(IS_STILL_TALKING(channels[i]->state) || IS_STOP_TALKING(channels[i]->state)) {
+				CLAM::SendFloatToInControl(*(tracks[i]), "Gain", 5.0);
+			}
+			else {
+				CLAM::SendFloatToInControl(*(tracks[i]), "Gain", 0.0);
+			}
+		}
+	}
+}
+
 // Beeps any channels that have been overlapping for at least 5 seconds and do not have the floor
 // Stops beeping after 3 seconds and starts all over again
 inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
@@ -67,7 +94,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 	gettimeofday(&_currTime, 0x0);
 	diffTime = 0.0;
 
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < NUMCHANNELS; i++) {
 		// If you've been marked but haven't been beeped yet
 		if(channels[i]->isGonnaGetBeeped && !channels[i]->isBeingBeeped) {
 			gettimeofday(&(channels[i]->_beepStartTime),0x0);
@@ -93,7 +120,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 
 // Looks at each Speaker State, updates each channel's Floor Action State
 void updateFloorActions(CLAM::Channelizer* channels[]) {
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < NUMCHANNELS; i++) {
 		if(IS_START_TALKING(channels[i]->state))
 			channels[i]->floorAction = TAKE_FLOOR;
 		else if (IS_STILL_TALKING(channels[i]->state))
@@ -108,7 +135,7 @@ void updateFloorActions(CLAM::Channelizer* channels[]) {
 // Find the number of people who are speaking now
 inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 	int speakers = 0;
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < NUMCHANNELS; i++) {
 		if(IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction))
 			speakers++;
 	}
@@ -121,7 +148,7 @@ inline std::string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 	short channelThatIsLeastDominant = channelThatHasFloor;
 	std::ostringstream oss;
 
-	for(int i = 0; i < 4; i++) {
+	for(int i = 0; i < NUMCHANNELS; i++) {
 		// If you're talking, we'll look at your activity levels, if you haven't been active, you get floor
 		if(IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction)) {
 			if(channels[i]->totalActivityLevel < channels[channelThatIsLeastDominant]->totalActivityLevel) {
@@ -152,7 +179,7 @@ std::string updateFloorState(CLAM::Channelizer* channels[]) {
 	if(FLOOR_FREE) {
 		int numWhoWantFloor = 0;
 		short channelWhoWantsFloor = -1;
-		for(int i = 0; i < 4; i++) {
+		for(int i = 0; i < NUMCHANNELS; i++) {
 			if(IS_TAKE_FLOOR(channels[i]->floorAction)) {
 				channelWhoWantsFloor = i;
 				numWhoWantFloor++;
@@ -180,7 +207,7 @@ std::string updateFloorState(CLAM::Channelizer* channels[]) {
 		// 	If there is an overlap for longer than overlapLength, mark everyone who does not 
 		// 	have the floor and is talking; whoever is marked will get beeped
 		else if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 != numSpeakers)) {
-			for (int i = 0; i < 4; i++) {
+			for (int i = 0; i < NUMCHANNELS; i++) {
 				if((i != channelThatHasFloor) && (IS_HOLD_FLOOR(channels[i]->floorAction))) {
 					channels[i]->totalSpeakingInterrupts++;
 				}
@@ -202,7 +229,7 @@ std::string updateFloorState(CLAM::Channelizer* channels[]) {
 			if(currOverlapLength >= overlapLength) {
 				
 				// Mark everyone who is talking that doesn't have the floor
-				for (int i = 0; i < 4; i++) {
+				for (int i = 0; i < NUMCHANNELS; i++) {
 					if((i != channelThatHasFloor) && (IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction))) {
 						channels[i]->isGonnaGetBeeped = true;
 					}
@@ -279,7 +306,7 @@ int main( int argc, char** argv )
 		network.SetPlayer(new CLAM::JACKNetworkPlayer("client1"));
 
 		try {
-			CLAM::XMLStorage::Restore(network, "/home/rahul/Project/MultiParty/emacspace/SNS4/windowing.clamnetwork");
+			CLAM::XMLStorage::Restore(network, "/home/rahul/Project/MultiParty/emacspace/multipartyspeech/windowing.clamnetwork");
 			//CLAM::XMLStorage::Restore(network, argv[1]);			
 		}
 		catch (CLAM::XmlStorageErr & e) {
@@ -293,8 +320,17 @@ int main( int argc, char** argv )
 		CLAM::SendFloatToInControl(mixer1, "Gain 3",0.0);
 		CLAM::SendFloatToInControl(mixer2, "Gain 3",0.0);
 		CLAM::SendFloatToInControl(mixer3, "Gain 3",0.0);
-		CLAM::SendFloatToInControl(mixer4, "Gain 3",0.0);
+		CLAM::SendFloatToInControl(mixer4 , "Gain 3",0.0);
 		
+		CLAM::Processing& trackVol1 = network.GetProcessing("AudioAmplifier");
+		CLAM::Processing& trackVol2 = network.GetProcessing("AudioAmplifier_1");
+		CLAM::Processing& trackVol3 = network.GetProcessing("AudioAmplifier_2");
+		CLAM::Processing& trackVol4 = network.GetProcessing("AudioAmplifier_3");
+		CLAM::Processing* tracks[4] ={&trackVol1, &trackVol2, &trackVol3, &trackVol4};
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			CLAM::SendFloatToInControl(*tracks[i], "Gain", 0.0);
+		}
+
 		CLAM::Processing& generator = network.GetProcessing("Generator");
 		//CLAM::SendFloatToInControl(generator, "Amplitude", 1.0);
 
@@ -354,6 +390,7 @@ int main( int argc, char** argv )
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
+			playTracks(channels, tracks);
 		}
 		delete [] channels;
 		delete [] mixers;
