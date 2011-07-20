@@ -279,7 +279,7 @@ int main( int argc, char** argv )
 		network.SetPlayer(new CLAM::JACKNetworkPlayer("client1"));
 
 		try {
-			CLAM::XMLStorage::Restore(network, "/home/rahul/Project/MultiParty/emacspace/SNS4/windowing.clamnetwork");
+			CLAM::XMLStorage::Restore(network, "/home/rahul/Project/MultiParty/emacspace/multipartyspeech/windowing.clamnetwork");
 			//CLAM::XMLStorage::Restore(network, argv[1]);			
 		}
 		catch (CLAM::XmlStorageErr & e) {
