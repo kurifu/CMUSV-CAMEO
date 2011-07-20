@@ -48,7 +48,6 @@ class Channelizer : public CLAM::Processing
 	short *pData;
 	unsigned windowSNS; //speech or no speech
 	float total;
-	float total
 	float totalEnergySpeaking; //cchien total log energy when speaking (each buffer)
 	float energySpeakingCount; //cchien used in log energy average
 	float totalEnergyNotSpeaking; //cchien total log energy noise floor (each buffer)
@@ -193,6 +192,7 @@ public:
 			
 			printSpeakerStats();
 			writeSpeakerStats();
+			writeVolStats();
 			
 			diffTime = 0.0;
 		}
@@ -205,7 +205,7 @@ public:
 		//cchien signal to noise ratio estimate
 		float energySpeakingAvg = totalEnergySpeaking / energySpeakingCount;
 		float energyNotSpeakingAvg = totalEnergyNotSpeaking / energyNotSpeakingCount;
-		float signalToNoise = fabs(energySpeakingAvg - energyNotSPeakingAvg) / energyNotSpeakingAvg;
+		float signalToNoise = fabs(energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg;
 
 		// 
 		float lowNoise = -10.0;
@@ -282,10 +282,12 @@ public:
 		std::ofstream volFile;
 		volFile.open("VolumeData.log", std::ios::app);
 		float energySpeakingAvg = totalEnergySpeaking / energySpeakingCount;
-		float energyNotSpeakingAvg = totalEnergyNotSPeaking / energyNotSpeakingCount;
+		float energyNotSpeakingAvg = totalEnergyNotSpeaking / energyNotSpeakingCount;
 		float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
 		volFile << "Speaking\tNot Speaking\tS-to-R\n";
+		std::cout << "Speaking\tNot Speaking\tS-to-R\n";
 		volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+		std::cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
 		volFile.close();
 	}
 	
