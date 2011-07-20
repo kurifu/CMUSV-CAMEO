@@ -386,3 +386,87 @@
 </Channel>
 </MultiPartySpeech>
 
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>0.928085</speakingLength>
+<totalSpeakingLength>0.928085</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+</MultiPartySpeech>
+
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>1.66415</speakingLength>
+<totalSpeakingLength>2.59223</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>1.66415</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+</MultiPartySpeech>
+
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>1.44012</speakingLength>
+<totalSpeakingLength>4.03235</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>3.10427</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+</MultiPartySpeech>
+
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>0.384033</speakingLength>
+<totalSpeakingLength>4.41639</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>3.10427</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+</MultiPartySpeech>
+
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>0.864075</speakingLength>
+<totalSpeakingLength>0.864075</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+</MultiPartySpeech>
+
+<MultiPartySpeech>
+<Channel>
+<name>Channel 1</name>
+<speakingLength>0.640056</speakingLength>
+<totalSpeakingLength>1.50413</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>100</dominancePercentage>
+<isDominant>1</isDominant>
+</Channel>
+</MultiPartySpeech>
+
