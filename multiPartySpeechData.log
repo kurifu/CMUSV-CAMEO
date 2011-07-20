@@ -473,6 +473,7 @@
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>3.2963</speakingLength>
 <totalSpeakingLength>3.2963</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>3.2963</totalSpeakingLengthNoUtterances>
@@ -531,10 +532,15 @@
 <name>Channel 1</name>
 <speakingLength>0.608036</speakingLength>
 <totalSpeakingLength>0.608036</totalSpeakingLength>
+=======
+<speakingLength>0.320061</speakingLength>
+<totalSpeakingLength>0.320061</totalSpeakingLength>
+>>>>>>> background_noise
 <totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
 <totalSpeakingInterrupts>0</totalSpeakingInterrupts>
 <totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<<<<<<< HEAD
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
 </Channel>
@@ -845,32 +851,52 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>0.672044</speakingLength>
 <totalSpeakingLength>0.672044</totalSpeakingLength>
+=======
+<speakingLength>0.60799</speakingLength>
+<totalSpeakingLength>0.928051</totalSpeakingLength>
+>>>>>>> background_noise
 <totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
 <totalSpeakingInterrupts>0</totalSpeakingInterrupts>
 <totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<<<<<<< HEAD
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>0.256021</speakingLength>
 <totalSpeakingLength>0.928065</totalSpeakingLength>
+=======
+<speakingLength>0.576052</speakingLength>
+<totalSpeakingLength>1.5041</totalSpeakingLength>
+>>>>>>> background_noise
 <totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
 <totalSpeakingInterrupts>0</totalSpeakingInterrupts>
 <totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<<<<<<< HEAD
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
 </Channel>
@@ -943,12 +969,17 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>0.480056</speakingLength>
 <totalSpeakingLength>5.92052</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>2.11218</totalSpeakingLengthNoUtterances>
@@ -957,12 +988,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>1.1521</speakingLength>
+<totalSpeakingLength>2.6562</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>1.1521</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>0.288011</speakingLength>
 <totalSpeakingLength>6.20853</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>2.11218</totalSpeakingLengthNoUtterances>
@@ -971,12 +1013,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>0.832106</speakingLength>
+<totalSpeakingLength>3.48831</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>1.1521</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>2.36821</speakingLength>
 <totalSpeakingLength>8.57674</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>4.48039</totalSpeakingLengthNoUtterances>
@@ -1091,18 +1144,28 @@
 <name>Channel 1</name>
 <speakingLength>0.736077</speakingLength>
 <totalSpeakingLength>0.736077</totalSpeakingLength>
+=======
+<speakingLength>0.448042</speakingLength>
+<totalSpeakingLength>0.448042</totalSpeakingLength>
+>>>>>>> background_noise
 <totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
 <totalSpeakingInterrupts>0</totalSpeakingInterrupts>
 <totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<<<<<<< HEAD
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>0.160001</speakingLength>
 <totalSpeakingLength>0.896078</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>0</totalSpeakingLengthNoUtterances>
@@ -1111,12 +1174,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>3.23229</speakingLength>
+<totalSpeakingLength>3.68033</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>3.23229</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>1.4401</speakingLength>
 <totalSpeakingLength>2.33618</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>1.4401</totalSpeakingLengthNoUtterances>
@@ -1125,12 +1199,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>0.128013</speakingLength>
+<totalSpeakingLength>3.80835</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>3.23229</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>1.34411</speakingLength>
 <totalSpeakingLength>3.68029</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>2.78422</totalSpeakingLengthNoUtterances>
@@ -1181,12 +1266,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>6.36855</speakingLength>
+<totalSpeakingLength>10.1769</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>9.60084</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>1.08809</speakingLength>
 <totalSpeakingLength>8.48071</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>6.17651</totalSpeakingLengthNoUtterances>
@@ -1195,12 +1291,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>12.4491</speakingLength>
+<totalSpeakingLength>12.4491</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>12.4491</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>1.72815</speakingLength>
 <totalSpeakingLength>10.2089</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>7.90466</totalSpeakingLengthNoUtterances>
@@ -1209,12 +1316,23 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>0.288021</speakingLength>
+<totalSpeakingLength>12.7371</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>12.4491</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
 <MultiPartySpeech>
 <Channel>
 <name>Channel 1</name>
+<<<<<<< HEAD
 <speakingLength>1.28011</speakingLength>
 <totalSpeakingLength>11.489</totalSpeakingLength>
 <totalSpeakingLengthNoUtterances>9.18477</totalSpeakingLengthNoUtterances>
@@ -1223,6 +1341,16 @@
 <totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
 <dominancePercentage>100</dominancePercentage>
 <isDominant>1</isDominant>
+=======
+<speakingLength>0.800067</speakingLength>
+<totalSpeakingLength>13.5372</totalSpeakingLength>
+<totalSpeakingLengthNoUtterances>12.4491</totalSpeakingLengthNoUtterances>
+<totalSpeakingInterrupts>0</totalSpeakingInterrupts>
+<totalSpeakingSuccessfulInterrupts>0</totalSpeakingSuccessfulInterrupts>
+<totalSpeakingUnsuccessfulInterrupts>0</totalSpeakingUnsuccessfulInterrupts>
+<dominancePercentage>-nan</dominancePercentage>
+<isDominant>0</isDominant>
+>>>>>>> background_noise
 </Channel>
 </MultiPartySpeech>
 
