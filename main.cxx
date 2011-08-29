@@ -66,7 +66,7 @@ void readData(CLAM::Channelizer* channels[]) {
 void adjustAmps(CLAM::Channelizer* channels[], CLAM::Processing* amps[]){
 	int j=0.5;
 	while(true){
-		for(int i=0; i<4; i++){
+		for(int i=0; i < NUMCHANNELS; i++){
 			if(IS_START_TALKING(channels[i]->state)||IS_STILL_TALKING(channels[i]->state)){
 	
 				while(channels[i]->logEnergy<50) {
@@ -349,7 +349,7 @@ int main( int argc, char** argv )
 		CLAM::Processing& amp2 = network.GetProcessing("Amp_2");
 		CLAM::Processing& amp3 = network.GetProcessing("Amp_3");
 		CLAM::Processing* amps[4] = {&amp0, &amp1, &amp2, &amp3};
-		for(int i = 0; i < 4; i++) {
+		for(int i = 0; i < NUMCHANNELS; i++) {
 			CLAM::SendFloatToInControl(*(amps[i]), "Gain", 0.5);
 		}
 
