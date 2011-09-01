@@ -4,8 +4,8 @@
   <description>&lt;!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd"&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name="qrichtext" content="1" /&gt;&lt;style type="text/css"&gt;
 p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=" font-family:'Sans'; font-size:10pt; font-weight:400; font-style:normal;"&gt;
-&lt;p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-family:'Ubuntu'; font-size:11pt;"&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
+&lt;/style&gt;&lt;/head&gt;&lt;body style=" font-family:'Ubuntu'; font-size:11pt; font-weight:400; font-style:normal;"&gt;
+&lt;p style="-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</description>
 
   <processing id="Amp" position="314,121" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
@@ -123,25 +123,25 @@ p, li { white-space: pre-wrap; }
   </processing>
 
   <processing id="Track" position="-2,408" size="207,57" type="MonoAudioFileReader">
-    <SourceFile>/home/pgao/Desktop/Beats/piano1.mp3</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/piano1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
   <processing id="Track_1" position="-6,469" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/pgao/Desktop/Beats/geetar1.mp3</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/geetar1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
   <processing id="Track_2" position="-7,532" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/pgao/Desktop/Beats/drums1.mp3</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/drums1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
   <processing id="Track_3" position="-5,591" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/pgao/Desktop/Beats/bassline1.mp3</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/bassline1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>

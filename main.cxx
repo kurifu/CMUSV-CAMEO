@@ -18,6 +18,9 @@
 #include <cstdlib>
 #include <cerrno>
 
+/* Festival */
+#include "/usr/include/festival/festival.h"
+
 #define IS_NOT_TALKING(x)	(x & NOT_TALKING)
 #define IS_START_TALKING(x)	(x & START_TALKING)
 #define IS_STILL_TALKING(x)	(x & STILL_TALKING)
@@ -327,7 +330,7 @@ int main( int argc, char** argv )
 		network.SetPlayer(new CLAM::JACKNetworkPlayer("client1"));
 
 		try {
-			CLAM::XMLStorage::Restore(network, "/home/rahul/Project/MultiParty/emacspace/multipartyspeech/windowing.clamnetwork");
+			CLAM::XMLStorage::Restore(network, "/home/rahul/Multiparty/Projects/multipartyspeech/windowing.clamnetwork");
 			//CLAM::XMLStorage::Restore(network, argv[1]);			
 		}
 		catch (CLAM::XmlStorageErr & e) {
@@ -420,6 +423,35 @@ int main( int argc, char** argv )
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 
+		//Festival TTS
+	
+ 		EST_Wave wave;
+   		int heap_size = 21000000;  // default scheme heap size
+    		int load_init_files = 1; // we want the festival init files loaded
+		int worked = 0;
+
+    		festival_initialize(load_init_files,heap_size);
+
+    		// Say simple file
+    		//festival_say_file("/etc/motd");
+
+    		//festival_eval_command("(voice_ked_diphone)");
+    		// Say some text;
+		char * s = "hello world";
+    		worked = festival_say_text(s);
+		std::cout << worked << "---***Done***\n";
+
+    		// Convert to a waveform
+    		//festival_text_to_wave("hello world",wave);
+	    	//wave.save("/tmp/wave.wav","riff");
+
+    		// festival_say_file puts the system in async mode so we better
+   	        // wait for the spooler to reach the last waveform before exiting
+    		// This isn't necessary if only festival_say_text is being used (and
+    		// your own wave playing stuff)
+    		festival_wait_for_spooler();
+
+		cout << "before main while" << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
 			//adjustAmps(channels, amps);
