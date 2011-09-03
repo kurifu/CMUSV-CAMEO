@@ -425,7 +425,7 @@ int main( int argc, char** argv )
 
 		//Festival TTS
 	
- 		EST_Wave wave;
+ 	/*	EST_Wave wave;
    		int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;
@@ -450,7 +450,7 @@ int main( int argc, char** argv )
     		// This isn't necessary if only festival_say_text is being used (and
     		// your own wave playing stuff)
     		festival_wait_for_spooler();
-
+*/
 		cout << "before main while" << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
