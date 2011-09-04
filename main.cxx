@@ -423,7 +423,7 @@ int main( int argc, char** argv )
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
 			//adjustAmps(channels, amps);
-			playTracks(channels, tracks);
+			//playTracks(channels, tracks);
 		}
 		delete [] channels;
 		delete [] mixers;

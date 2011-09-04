@@ -67,7 +67,7 @@ public:
 	Channelizer( const Config& config = Config())
 		: _input("Input", this)
 		, _max(0.)
-		, _bufferCount(0)
+		, _bufferCount(-1) //previously 0
 		
 	{
 		Configure( config );
@@ -127,7 +127,7 @@ public:
 			if (current<-_max) _max=-current;
 		}
 		logEnergy = 60 + 20*log(_max);
-		if (logEnergy > 15) {
+		if (logEnergy > 0) { //previously 15 
 			bufferSNS = 1;
 			totalEnergySpeaking += logEnergy; //cchien
 			energySpeakingCount++; // used in log energy average
@@ -142,16 +142,18 @@ public:
 		//Threshold buffer and add to moving average
 		if (_bufferCount < windowSize)
 		{
+			
 			pData[_bufferCount] = bufferSNS;
+			//std::cout << "pdata[i]: " << pData[_bufferCount % windowSize] << std::endl; 				
 			total += bufferSNS;
 			//printf("window size is %d, bufferCount is %d, total is %f\n", windowSize, _bufferCount, total);
 			if (windowSize - _bufferCount == 1) {
 				_average = total/(float)windowSize; 
-			//	std::cout << "** setting average! its " << _average << std::endl;
+				//std::cout << "** setting average! its " << _average << std::endl;
 			}
  		}
 		else 
-		{
+		{	//std::cout << "pdata[i]: " << pData[_bufferCount % windowSize] << std::endl; 
 			total -= pData[_bufferCount % windowSize];
 			pData[_bufferCount % windowSize] = bufferSNS;
 			total += bufferSNS;
@@ -159,7 +161,7 @@ public:
 			//printf("stepSize: %d, index: %d\n", stepSize, (_bufferCount % windowSize));
 			if (_bufferCount % stepSize == 0) {
 				_average = total/windowSize; 
-			//	std::cout << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << std::endl;
+				//std::cout << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << std::endl;
 				if (_average >= 0.5) windowSNS = 1;
 				else windowSNS = 0;
 			}
