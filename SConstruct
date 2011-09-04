@@ -19,6 +19,8 @@ env.SConsignFile() # Single signature file
 
 env.ParseConfig('pkg-config --cflags --libs libcurl')
 
+# -L/usr/local/lib   -lxmlrpc_client -lxmlrpc_client -lxmlrpc_server -lxmlrpc_server_abyss -lxmlrpc_cpp -lxmlrpc -lxmlrpc_util -lxmlrpc_xmlparse -lxmlrpc_xmltok -lcurl -Wl,-Bsymbolic-functions 
+
 CLAMInstallDir = env['clam_prefix']
 clam_sconstoolspath = os.path.join(CLAMInstallDir,'share','clam','sconstools')
 
@@ -75,7 +77,9 @@ if sys.platform=='win32' :
 if sys.platform=='linux2' :
 	env.Append( CCFLAGS=['-g','-O3','-Wall'] )
 
-programs = [ env.Program(target=program, source = [main] + sources) 
+#programs = [ env.Program(target=program, source = [main] + sources) 
+env.Append( CPPPATH=['/usr/lib/speech_tools/include', '/usr/include/speech_tools/'] )
+programs = [ env.Program(target=program, source = [main] + sources, LIBS=['clam_core', 'clam_audioio', 'clam_processing', 'QtCore', 'QtGui', 'Festival', 'estools', 'estbase', 'eststring', 'curl', 'xmlrpc_client++', 'xmlrpc_client', 'xmlrpc++', 'xmlrpc', 'xmlrpc_util', 'xmlrpc_xmlparse', 'xmlrpc_xmltok', 'xmlrpc_packetsocket'], LIBPATH=['/usr/lib/speech_tools/lib/','/usr/lib/', '/usr/lib/speech_tools/include/', '/usr/local', '/usr/local/include', '/usr/local/lib/']) 
 	for program, main in mainSources.items()]
 
 env.Default(programs)

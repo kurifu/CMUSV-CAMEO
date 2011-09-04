@@ -123,25 +123,25 @@ p, li { white-space: pre-wrap; }
   </processing>
 
   <processing id="Track" position="-2,408" size="207,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/bassline1.mp3</SourceFile>
+    <SourceFile>background_tracks/bassline1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
   <processing id="Track_1" position="-6,469" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/geetar1.mp3</SourceFile>
+    <SourceFile>background_tracks/geetar1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
   <processing id="Track_2" position="-7,532" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/drums1.mp3</SourceFile>
+    <SourceFile>background_tracks/drums1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
 
   <processing id="Track_3" position="-5,591" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/bassline1.mp3</SourceFile>
+    <SourceFile>background_tracks/bassline1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>1</Loop>
   </processing>
