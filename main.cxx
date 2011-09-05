@@ -100,7 +100,8 @@ char* getSocketPeerIp(int sock) {
 * Function that handles incoming connections at LISTEN_PORT by blocking
 * This function runs in a separate thread called by runLoginManager
 */
-void* connect(void* ptr) {
+//void* connect(void* ptr) {
+void connect() {
         //while(1) {
                 socklen_t clientAddrLen;
                 struct sockaddr_in serverAddr, clientAddr;
@@ -156,7 +157,7 @@ void* connect(void* ptr) {
 * Spawns off a thread to run the 'connect' function which handles incoming socket connecitons
 */
 void runLoginManager() {
-        pthread_t thread_connect;
+/*        pthread_t thread_connect;
         char* dummyMsg = "return msg?";
         int retval_connect_supervisor;
 
@@ -164,6 +165,13 @@ void runLoginManager() {
         retval_connect_supervisor = pthread_create(&thread_connect, NULL, connect, (void*) dummyMsg);
         pthread_join(thread_connect, NULL);
         cerr << "LoginManager started successfully." << endl;
+*/
+	pid_t pID = fork();
+	if(pID == 0) {
+		cerr << "Login Manager Process running" << endl;
+		connect();	
+	}
+
 }
 
 //////////////////////////////
@@ -545,13 +553,13 @@ int main( int argc, char** argv )
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 
-runLoginManager();
+/*runLoginManager();
 
 		while(CURRNUMCHANNELS == 0) {
 			cerr << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
 			sleep(5);
 		}	
-
+*/
 		cerr << "Starting supervisor..." << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
