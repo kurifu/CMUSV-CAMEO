@@ -18,14 +18,27 @@
 #include <cstdlib>
 #include <cerrno>
 
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <fstream>
+#include <fcntl.h>
+
 #define IS_NOT_TALKING(x)	(x & NOT_TALKING)
 #define IS_START_TALKING(x)	(x & START_TALKING)
 #define IS_STILL_TALKING(x)	(x & STILL_TALKING)
 #define IS_STOP_TALKING(x)	(x & STOP_TALKING)
 #define FLOOR_FREE		-1 == channelThatHasFloor
 
-const static double dominanceThreshold = .6;
-const static double beepLength = 3.0;
+using namespace std;
+
+const static double DOMINANCE_THRESHOLD = .6;
+const static double BEEPLENGTH = 3.0;
 const static double overlapLength = 3.0;
 double currOverlapLength = 0;
 struct timeval _currTime, _beepTimeDiff, _overlapStartTime;
@@ -37,14 +50,129 @@ const int NUMCHANNELS = 4;
 // CLAM Setup
 //////////////////////////////
 
+/********
+* Login *
+********/
+static int mySocketFD;
+int CURRNUMCHANNELS = 0;
+static const int LISTEN_PORT = 4444;
+
+// Number of seconds to wait for someone to login before starting supervisor
+static const int LOGIN_WAIT = 5;
+
+void initialize() {
+        mySocketFD = socket(AF_INET, SOCK_STREAM, 0);
+
+        int optval = 1;
+        setsockopt(mySocketFD, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+        if(mySocketFD < 0) {
+                cerr << "ERROR opening socket on port " << LISTEN_PORT << endl;
+                return;
+        }
+}
+
+/**
+* Finds the IP address of the client connected at the provided socket file descriptor
+* Returns: char* containing ip, or NULL
+*/
+char* getSocketPeerIp(int sock) {
+        struct sockaddr_storage ss;
+        socklen_t salen = sizeof(ss);
+        struct sockaddr *sa;
+        memset(&ss, 0, salen);
+        sa = (sockaddr*) &ss;
+        if(getpeername(sock, sa, &salen) != 0) {
+                return NULL;
+        }
+
+        char* ip = NULL;
+        if(sa->sa_family == AF_INET) {
+                ip = inet_ntoa( ((struct sockaddr_in *) sa)->sin_addr);
+        }
+        else {
+                cerr << "IPV6 problem?" << endl;
+        }
+        return ip;
+}
+
+/**
+* Function that handles incoming connections at LISTEN_PORT by blocking
+* This function runs in a separate thread called by runLoginManager
+*/
+void* connect(void* ptr) {
+        while(1) {
+                socklen_t clientAddrLen;
+                struct sockaddr_in serverAddr, clientAddr;
+                int clientSocketFD;
+
+                initialize();
+                bzero((char*) &serverAddr, sizeof(serverAddr));
+
+                // Initialize members of struct sockaddr_in
+                // INADDR_ANY gets the address of the machine the server is running on
+                // need to convert port number to network byte order via htons
+                serverAddr.sin_family = AF_INET;
+                serverAddr.sin_addr.s_addr = INADDR_ANY;
+                serverAddr.sin_port = htons(LISTEN_PORT);
+
+                if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
+                        cerr << "ERROR on binding socket, exiting..." << endl;
+                        pthread_exit(0);
+                }
+
+                cerr << "Waiting for incoming client... " << endl;
+                flush(cerr);
+                // 2nd arg: size of backlog queue, 5 for now, really only need 1
+                listen(mySocketFD, 5);
+                clientAddrLen = sizeof(clientAddr);
+
+                clientSocketFD = accept(mySocketFD, (struct sockaddr*) &clientAddr, &clientAddrLen);
+                cerr << "\t... connected!" << endl;
+                if(clientSocketFD < 0) {
+                        cerr << "ERROR on accepting connection!" << endl;
+                        pthread_exit(0);
+                }
+
+                char* ip = getSocketPeerIp(clientSocketFD);
+                if(ip != NULL) {
+                        cerr << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
+                        CURRNUMCHANNELS++;
+                        string command = "jack_netsource -H " + (string)ip;
+                        //TODO system(command);
+                        //addChannel();
+                }
+                else {
+                        cerr << "Error getting IP!" << endl;
+                }
+
+                cerr << "Done adding new connection, closing connection..." << endl;
+                close(clientSocketFD);
+                close(mySocketFD);
+        }
+}
+
+/**
+* Spawns off a thread to run the 'connect' function which handles incoming socket connecitons
+*/
+void runLoginManager() {
+        pthread_t thread_connect;
+        char* dummyMsg = "return msg?";
+        int retval_connect_supervisor;
+
+        cerr << "Initializing Login Manager..." << endl;
+        retval_connect_supervisor = pthread_create(&thread_connect, NULL, connect, (void*) dummyMsg);
+        pthread_join(thread_connect, NULL);
+        cerr << "LoginManager started successfully." << endl;
+}
+
 //////////////////////////////
 // Floor Management
 //////////////////////////////
 int channelThatHasFloor = -1;
 
-int error(const std::string & msg)
+int error(const string & msg)
 {
-	std::cerr << msg << std::endl;
+	cerr << msg << endl;
 	return -1;
 }
 
@@ -53,7 +181,7 @@ inline void calculateDominance(CLAM::Channelizer* channels[]) {
 	double totalTSL = channels[0]->totalSpeakingLength + channels[1]->totalSpeakingLength + channels[2]->totalSpeakingLength + channels[3]->totalSpeakingLength;
 	for(int i = 0; i < NUMCHANNELS; i++) {
 		channels[i]->totalActivityLevel = channels[i]->totalSpeakingLength / totalTSL;
-		(channels[i]->totalActivityLevel >= dominanceThreshold) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
+		(channels[i]->totalActivityLevel >= DOMINANCE_THRESHOLD) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
 	}
 }
 
@@ -121,7 +249,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			gettimeofday(&(channels[i]->_beepStartTime),0x0);
 			channels[i]->isBeingBeeped = true;
 			channels[i]->isGonnaGetBeeped = false;
-			//std::cout << "starting beep\n";
+			//cout << "starting beep\n";
 			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 3", 1.0);
 		}
 		// If you're currently being beeped, make sure we don't beep you longer than X seconds
@@ -130,7 +258,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
 
 			// Turn off beep
-			if(diffTime >= beepLength) {
+			if(diffTime >= BEEPLENGTH) {
 				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 3", 0.0);
 				channels[i]->isBeingBeeped = false;
 			}
@@ -164,10 +292,10 @@ inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 }
 
 
-inline std::string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
-	//std::cout << "giveFloorToLeastDominantGuy" << std::endl;
+inline string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
+	//cout << "giveFloorToLeastDominantGuy" << endl;
 	short channelThatIsLeastDominant = channelThatHasFloor;
-	std::ostringstream oss;
+	ostringstream oss;
 
 	for(int i = 0; i < NUMCHANNELS; i++) {
 		// If you're talking, we'll look at your activity levels, if you haven't been active, you get floor
@@ -179,7 +307,7 @@ inline std::string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 	}
 
 	oss << (channelThatHasFloor+1);
-	std::string output = "Channel " + oss.str() + ", you've been talking for quite some time, why don't you let Channel ";
+	string output = "Channel " + oss.str() + ", you've been talking for quite some time, why don't you let Channel ";
 	oss.str("");
 	oss << (channelThatIsLeastDominant+1);
 	output += oss.str() + " take over?";
@@ -189,9 +317,9 @@ inline std::string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 
 
 // Looks at each Floor Action, updates the global Floor State
-std::string updateFloorState(CLAM::Channelizer* channels[]) {
-	std::string outputMsg;
-	std::ostringstream oss;
+string updateFloorState(CLAM::Channelizer* channels[]) {
+	string outputMsg;
+	ostringstream oss;
 
 	int numSpeakers = findNumSpeakers(channels);
 
@@ -267,12 +395,12 @@ std::string updateFloorState(CLAM::Channelizer* channels[]) {
 	return outputMsg;
 }
 
-std::string updateFloorStuff(CLAM::Channelizer* channels[], std::string prevMsg, CLAM::Processing* mixers[]) {
-	std::string notifyMsg = "";
+string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Processing* mixers[]) {
+	string notifyMsg = "";
 	
-	std::ofstream dataFile;
+	ofstream dataFile;
 	//dataFile.open("multiPartySpeechData.xml");
-	//std::cout << "Writing start tag!\n";
+	//cout << "Writing start tag!\n";
 	//dataFile << "<MultiPartySpeech>\n";
 	
 	calculateDominance(channels);
@@ -287,7 +415,7 @@ std::string updateFloorStuff(CLAM::Channelizer* channels[], std::string prevMsg,
 	//dataFile.close();
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
-		//std::cout << notifyMsg << std::endl;
+		//cout << notifyMsg << endl;
 	}
 	return notifyMsg;
 }
@@ -386,7 +514,7 @@ int main( int argc, char** argv )
 
 		//JACK CODE
          	jack_client_t * jackClient;
-         	std::string jackClientName;
+         	string jackClientName;
 		jack_status_t jackStatus;
 		jackClient = jack_client_open ( "test", JackNullOption, &jackStatus );
 		
@@ -403,7 +531,7 @@ int main( int argc, char** argv )
 		jack_connect(jackClient, "client1:AudioSink_3", "netjack:playback_2");
 
 		// Notify user only when something has changed, i.e. floor changes, collisions, etc.
-		std::string prevMsg = "";
+		string prevMsg = "";
 
 		CLAM::Channelizer* channels[4];
 		channels[0] = &myp1;
@@ -419,6 +547,7 @@ int main( int argc, char** argv )
 
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
+
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
@@ -437,8 +566,8 @@ int main( int argc, char** argv )
 		e.Print();
 		exit(-1);
 	}
-	catch( std::exception& e ) {
-		std::cerr << e.what() << std::endl;
+	catch( exception& e ) {
+		cerr << e.what() << endl;
 		exit(-1);		
 	}
 

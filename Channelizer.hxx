@@ -10,6 +10,15 @@
 #include <iostream>
 #include <fstream>
 
+/* XMLRPC Libraries */
+#include <cassert>
+#include <cstdlib>
+#include <string>
+#include <xmlrpc-c/girerr.hpp>
+#include <xmlrpc-c/base.hpp>
+#include <xmlrpc-c/client.hpp>
+
+
 /* Speaker Macros */
 #define NOT_TALKING		0x1000
 #define START_TALKING		0x0100
@@ -32,6 +41,8 @@
 #define IS_HOLD_FLOOR(x)	(x & HOLD_FLOOR)
 #define IS_RELEASE_FLOOR(x)	(x & RELEASE_FLOOR)
 
+using namespace std;
+
 namespace CLAM
 {
 
@@ -42,7 +53,7 @@ class Channelizer : public CLAM::Processing
 	int loudSoft; // 0 = ok, -1 = mic too soft, -2 = speaking too soft
 	float _average;
 	unsigned _bufferCount;
-	std::string _name;
+	string _name;
 	struct timeval _starttime,_endtime,_timediff, _sessionStart;
 	unsigned int windowSize;
 	short *pData;
@@ -54,6 +65,7 @@ class Channelizer : public CLAM::Processing
 	float energyNotSpeakingCount; //cchien used in log energy noise floor average
 
 public:
+	int channelNum;
 	double logEnergy;
 	double diffTime, totalSpeakingLength, sessionTime, totalSpeakingLengthNoUtterances, totalActivityLevel;
 	unsigned int totalSpeakingTurns, totalSpeakingInterrupts, totalSpeakingSuccessfulInterrupts, totalSpeakingUnsuccessfulInterrupts;
@@ -144,16 +156,16 @@ public:
 		{
 			
 			pData[_bufferCount] = bufferSNS;
-			//std::cout << "pdata[i]: " << pData[_bufferCount % windowSize] << std::endl; 				
+			//cout << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 				
 			total += bufferSNS;
 			//printf("window size is %d, bufferCount is %d, total is %f\n", windowSize, _bufferCount, total);
 			if (windowSize - _bufferCount == 1) {
 				_average = total/(float)windowSize; 
-				//std::cout << "** setting average! its " << _average << std::endl;
+				//cout << "** setting average! its " << _average << endl;
 			}
  		}
 		else 
-		{	//std::cout << "pdata[i]: " << pData[_bufferCount % windowSize] << std::endl; 
+		{	//cout << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 
 			total -= pData[_bufferCount % windowSize];
 			pData[_bufferCount % windowSize] = bufferSNS;
 			total += bufferSNS;
@@ -161,28 +173,28 @@ public:
 			//printf("stepSize: %d, index: %d\n", stepSize, (_bufferCount % windowSize));
 			if (_bufferCount % stepSize == 0) {
 				_average = total/windowSize; 
-				//std::cout << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << std::endl;
+				//cout << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << endl;
 				if (_average >= 0.5) windowSNS = 1;
 				else windowSNS = 0;
 			}
 		}
 
 		if (windowSNS<1 && IS_NOT_TALKING(state)) {
-			//std::cout << "not talking! state is " << state << std::endl;
+			//cout << "not talking! state is " << state << endl;
 			state = NOT_TALKING;
 		}
 		else if (windowSNS==1 && IS_NOT_TALKING(state)) {
 			gettimeofday(&_starttime,0x0);				
 			state = START_TALKING;
 			newUtterance = true;
-			//std::cout << "** started talking! " << getPName() << " state is " << state << std::endl;
+			//cout << "** started talking! " << getPName() << " state is " << state << endl;
 		}
 		else if (windowSNS==1 && (IS_START_TALKING(state) || (IS_STILL_TALKING(state)))) {		
 			state = STILL_TALKING;
-			//std::cout << "** still talking! state is " << state << std::endl;
+			//cout << "** still talking! state is " << state << endl;
 		}
 		else if (windowSNS<1 && IS_STILL_TALKING(state)) {
-			//std::cout << "** stopped talking! **";
+			//cout << "** stopped talking! **";
 			state = STOP_TALKING;
 			gettimeofday(&_endtime,0x0);				
 			timeval_subtract(&_timediff, &_endtime, &_starttime);
@@ -193,13 +205,14 @@ public:
 			}
 			
 			printSpeakerStats();
-			writeSpeakerStats();
-			writeVolStats();
+			sendSpeakerStats();			
+			//writeSpeakerStats();
+			//writeVolStats();
 			
 			diffTime = 0.0;
 		}
 		else if (windowSNS<1 && IS_STOP_TALKING(state)) {
-			//std::cout << "stopped talking!\n";
+			//cout << "stopped talking!\n";
 			state = NOT_TALKING;
 			newUtterance = false; // TODO
 		}
@@ -224,7 +237,7 @@ public:
 			loudSoft = 0;
 		}
 
-		//std::cout << "\t windowSNS: " << windowSNS << ", state: " << std::hex << state << std::endl;
+		//cout << "\t windowSNS: " << windowSNS << ", state: " << hex << state << endl;
 		gettimeofday(&_endtime,0x0);		
 		timeval_subtract(&_timediff, &_endtime, &_sessionStart);
 		sessionTime = (double)_timediff.tv_sec + (double)0.001*_timediff.tv_usec/1000; //time in sec.ms			
@@ -232,7 +245,7 @@ public:
 		
 		//(totalActivityLevel >= dominanceThreshold) ? isDominant = true : isDominant = false;
 
-		//std::cout << _name << " total spoken for " << sessionTime << " secs\n";
+		//cout << _name << " total spoken for " << sessionTime << " secs\n";
 		_input.Consume();
 		return true;
 	}
@@ -267,7 +280,7 @@ public:
 	}
 
 	
-	void SetPName(char* d)
+	void SetPName(string d)
 	{
 		_name = d;
 	}
@@ -275,86 +288,73 @@ public:
 	{
 		return "Channelizer";
 	}
-	std::string getPName() {
+	string getPName() {
 		return _name;
 	}
 
 	//cchien
 	void writeVolStats() {
-		std::ofstream volFile;
-		volFile.open("VolumeData.log", std::ios::app);
+		ofstream volFile;
+		volFile.open("VolumeData.log", ios::app);
 		float energySpeakingAvg = totalEnergySpeaking / energySpeakingCount;
 		float energyNotSpeakingAvg = totalEnergyNotSpeaking / energyNotSpeakingCount;
 		float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
 		volFile << "Speaking\tNot Speaking\tS-to-R\n";
-		std::cout << "Speaking\tNot Speaking\tS-to-R\n";
+		cout << "Speaking\tNot Speaking\tS-to-R\n";
 		volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
-		std::cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+		cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
 		volFile.close();
 	}
 	
 	inline void printSpeakerStats() {
-		/*std::cout << "\t" << _name << " spoke for " << diffTime << " secs\n";
-		std::cout << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
-		std::cout << "\t" << _name << " TSLNoU (total speaking length no utterances): " << totalSpeakingLengthNoUtterances << " secs\n";
-		std::cout << "\t" << _name << " TSI (total speaking interrupts): " << totalSpeakingInterrupts << " times\n";
-		std::cout << "\t" << _name << " TSI (total speaking unsuccessful interrupts): " << totalSpeakingUnsuccessfulInterrupts << " times\n";
-		std::cout << "\t" << _name << " Dominance Percentage: " << totalActivityLevel*100 << "%\n";
-		std::cout << "\t" << _name << " Is Dominant: ";
-	       (isDominant) ? std::cout	<< "YES\n" : std::cout << "NO\n";
-		std::cout << "\t" << _name << " Session Time: " << sessionTime << " sec\n";*/
+		cout << "\t" << _name << " spoke for " << diffTime << " secs\n";
+		cout << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
+		cout << "\t" << _name << " TSLNoU (total speaking length no utterances): " << totalSpeakingLengthNoUtterances << " secs\n";
+		cout << "\t" << _name << " TSI (total speaking interrupts): " << totalSpeakingInterrupts << " times\n";
+		cout << "\t" << _name << " TSI (total speaking unsuccessful interrupts): " << totalSpeakingUnsuccessfulInterrupts << " times\n";
+		cout << "\t" << _name << " Dominance Percentage: " << totalActivityLevel*100 << "%\n";
+		cout << "\t" << _name << " Is Dominant: ";
+	       (isDominant) ? cout	<< "YES\n" : cout << "NO\n";
+		cout << "\t" << _name << " Session Time: " << sessionTime << " sec\n";
 	}
 
-	void writeSpeakerStats() {
-		std::ofstream cumulativeLogFile;
-		//std::ofstream dataFile;
+	 /**
+        * Sends the current speaker's statistics to our Rails/Faye server to broadcast to all users
+        * The order in which the statistics are sent are very important, and must be in this specific order:
+        * Channel Number, Speaking Length, TSL, TSLNoU, TSI, TSSI, TSUI, Dominance Percentage, Is Dominant
+        */
+        inline void sendSpeakerStats() {
+                cerr << "** Sending data" << endl;
+                xmlrpc_c::clientXmlTransport_curl myTransport;
+                xmlrpc_c::client_xml myClient(&myTransport);
+                string const methodName("get_data_rpc");
+                string const serverUrl("http://localhost:3000/main/get_data_rpc");
+                try {
+                        xmlrpc_c::paramList sampleAddParms1;
+                        sampleAddParms1.add(xmlrpc_c::value_int(channelNum));
+                        sampleAddParms1.add(xmlrpc_c::value_double(diffTime));
+                        sampleAddParms1.add(xmlrpc_c::value_double(totalSpeakingLength));
+                        sampleAddParms1.add(xmlrpc_c::value_double(totalSpeakingLengthNoUtterances));
+                        sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingInterrupts));
+                        sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingSuccessfulInterrupts));
+                        sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingUnsuccessfulInterrupts));
+                        sampleAddParms1.add(xmlrpc_c::value_double(totalActivityLevel));
+                        sampleAddParms1.add(xmlrpc_c::value_boolean(isDominant));
 
-		cumulativeLogFile.open("multiPartySpeechData.log", std::ios::app);
-		//dataFile.open("multiPartySpeechData.xml");
-		//dataFile << "<MultiPartySpeech>\n";
-		std::cout << "<MultiPartySpeech>\n";
-		//dataFile << "<Channel>\n";
-		std::cout << "<Channel>\n";
-		//dataFile << "<name>" << _name << "</name>\n";
-		std::cout << "<name>" << _name << "</name>\n";
-		//dataFile << "<speakingLength>" << diffTime << "</speakingLength>\n";
-		std::cout << "<speakingLength>" << diffTime << "</speakingLength>\n";
-		//dataFile << "<totalSpeakingLength>" << totalSpeakingLength << "</totalSpeakingLength>\n";
-		std::cout << "<totalSpeakingLength>" << totalSpeakingLength << "</totalSpeakingLength>\n";
-		//dataFile << "<totalSpeakingLengthNoUtterances>" << totalSpeakingLengthNoUtterances << "</totalSpeakingLengthNoUtterances>\n";
-		std::cout << "<totalSpeakingLengthNoUtterances>" << totalSpeakingLengthNoUtterances << "</totalSpeakingLengthNoUtterances>\n";
-		//dataFile << "<totalSpeakingInterrupts>" << totalSpeakingInterrupts << "</totalSpeakingInterrupts>\n";
-		std::cout << "<totalSpeakingInterrupts>" << totalSpeakingInterrupts << "</totalSpeakingInterrupts>\n";
-		//dataFile << "<totalSpeakingSuccessfulInterrupts>" << totalSpeakingSuccessfulInterrupts << "</totalSpeakingSuccessfulInterrupts>\n";
-		std::cout << "<totalSpeakingSuccessfulInterrupts>" << totalSpeakingSuccessfulInterrupts << "</totalSpeakingSuccessfulInterrupts>\n";
-		//dataFile << "<totalSpeakingUnsuccessfulInterrupts>" << totalSpeakingUnsuccessfulInterrupts << "</totalSpeakingUnsuccessfulInterrupts>\n";
-		std::cout << "<totalSpeakingUnsuccessfulInterrupts>" << totalSpeakingUnsuccessfulInterrupts << "</totalSpeakingUnsuccessfulInterrupts>\n";
-		//dataFile << "<dominancePercentage>" << totalActivityLevel*100 << "</dominancePercentage>\n";
-		std::cout << "<dominancePercentage>" << totalActivityLevel*100 << "</dominancePercentage>\n";
-		//dataFile << "<isDominant>" << isDominant << "</isDominant>\n";
-		std::cout << "<isDominant>" << isDominant << "</isDominant>\n";
-		//dataFile << "</Channel>\n\n";
-		std::cout << "</Channel>\n";
-		//dataFile << "</MultiPartySpeech>\n";
-		std::cout << "</MultiPartySpeech>\n\n";
+                        xmlrpc_c::rpcPtr rpc1P(methodName, sampleAddParms1);
+                        xmlrpc_c::carriageParm_curl0 myCarriageParm(serverUrl);
+                        rpc1P->start(&myClient, &myCarriageParm);
+                        myClient.finishAsync(xmlrpc_c::timeout()); // infinite timeout?
+                        assert(rpc1P->isFinished());
+                }
+                catch (exception const& e) {
+                        cerr << "Client threw error: " << e.what() << endl;
+                }
+                catch (...) {
+                        cerr << "Client threw unexpected error." << endl;
+                }
+        }
 
-		cumulativeLogFile << "<MultiPartySpeech>\n";
-		cumulativeLogFile << "<Channel>\n";
-		cumulativeLogFile << "<name>" << _name << "</name>\n";
-		cumulativeLogFile << "<speakingLength>" << diffTime << "</speakingLength>\n";
-		cumulativeLogFile << "<totalSpeakingLength>" << totalSpeakingLength << "</totalSpeakingLength>\n";
-		cumulativeLogFile << "<totalSpeakingLengthNoUtterances>" << totalSpeakingLengthNoUtterances << "</totalSpeakingLengthNoUtterances>\n";
-		cumulativeLogFile << "<totalSpeakingInterrupts>" << totalSpeakingInterrupts << "</totalSpeakingInterrupts>\n";
-		cumulativeLogFile << "<totalSpeakingSuccessfulInterrupts>" << totalSpeakingSuccessfulInterrupts << "</totalSpeakingSuccessfulInterrupts>\n";
-		cumulativeLogFile << "<totalSpeakingUnsuccessfulInterrupts>" << totalSpeakingUnsuccessfulInterrupts << "</totalSpeakingUnsuccessfulInterrupts>\n";
-		cumulativeLogFile << "<dominancePercentage>" << totalActivityLevel*100 << "</dominancePercentage>\n";
-		cumulativeLogFile << "<isDominant>" << isDominant << "</isDominant>\n";
-		cumulativeLogFile << "</Channel>\n";
-		cumulativeLogFile << "</MultiPartySpeech>\n\n";
-
-		//dataFile.close();
-		cumulativeLogFile.close();
-	}
 };
 
 } //namespace
