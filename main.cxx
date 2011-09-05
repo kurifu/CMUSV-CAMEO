@@ -55,10 +55,11 @@ const int NUMCHANNELS = 4;
 ********/
 static int mySocketFD;
 int CURRNUMCHANNELS = 0;
+//const int SLEEP_WAIT = 5;
 static const int LISTEN_PORT = 4444;
 
 // Number of seconds to wait for someone to login before starting supervisor
-static const int LOGIN_WAIT = 5;
+//static const int LOGIN_WAIT = 5;
 
 void initialize() {
         mySocketFD = socket(AF_INET, SOCK_STREAM, 0);
@@ -100,7 +101,7 @@ char* getSocketPeerIp(int sock) {
 * This function runs in a separate thread called by runLoginManager
 */
 void* connect(void* ptr) {
-        while(1) {
+        //while(1) {
                 socklen_t clientAddrLen;
                 struct sockaddr_in serverAddr, clientAddr;
                 int clientSocketFD;
@@ -138,7 +139,7 @@ void* connect(void* ptr) {
                         cerr << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
                         CURRNUMCHANNELS++;
                         string command = "jack_netsource -H " + (string)ip;
-                        //TODO system(command);
+                        system("jack_netsource -H 10.0.23.31");
                         //addChannel();
                 }
                 else {
@@ -148,7 +149,7 @@ void* connect(void* ptr) {
                 cerr << "Done adding new connection, closing connection..." << endl;
                 close(clientSocketFD);
                 close(mySocketFD);
-        }
+        //}
 }
 
 /**
@@ -183,10 +184,6 @@ inline void calculateDominance(CLAM::Channelizer* channels[]) {
 		channels[i]->totalActivityLevel = channels[i]->totalSpeakingLength / totalTSL;
 		(channels[i]->totalActivityLevel >= DOMINANCE_THRESHOLD) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
 	}
-}
-
-void readData(CLAM::Channelizer* channels[]) {
-	
 }
 
 // PGAO AMP ADJUST
@@ -249,7 +246,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			gettimeofday(&(channels[i]->_beepStartTime),0x0);
 			channels[i]->isBeingBeeped = true;
 			channels[i]->isGonnaGetBeeped = false;
-			//cout << "starting beep\n";
+			//cerr << "starting beep\n";
 			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 3", 1.0);
 		}
 		// If you're currently being beeped, make sure we don't beep you longer than X seconds
@@ -293,7 +290,7 @@ inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 
 
 inline string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
-	//cout << "giveFloorToLeastDominantGuy" << endl;
+	//cerr << "giveFloorToLeastDominantGuy" << endl;
 	short channelThatIsLeastDominant = channelThatHasFloor;
 	ostringstream oss;
 
@@ -400,7 +397,7 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	
 	ofstream dataFile;
 	//dataFile.open("multiPartySpeechData.xml");
-	//cout << "Writing start tag!\n";
+	//cerr << "Writing start tag!\n";
 	//dataFile << "<MultiPartySpeech>\n";
 	
 	calculateDominance(channels);
@@ -415,7 +412,7 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	//dataFile.close();
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
-		//cout << notifyMsg << endl;
+		//cerr << notifyMsg << endl;
 	}
 	return notifyMsg;
 }
@@ -548,7 +545,14 @@ int main( int argc, char** argv )
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 
+runLoginManager();
 
+		while(CURRNUMCHANNELS == 0) {
+			cerr << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
+			sleep(5);
+		}	
+
+		cerr << "Starting supervisor..." << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
 			//adjustAmps(channels, amps);
