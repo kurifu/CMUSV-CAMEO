@@ -356,7 +356,7 @@ int main( int argc, char** argv )
 			CLAM::SendFloatToInControl(*(amps[i]), "Gain", 0.5);
 		}
 
-		// Background Noise
+	/*	// Background Noise
 		CLAM::Processing& trackVol1 = network.GetProcessing("AudioAmplifier");
 		CLAM::Processing& trackVol2 = network.GetProcessing("AudioAmplifier_1");
 		CLAM::Processing& trackVol3 = network.GetProcessing("AudioAmplifier_2");
@@ -365,7 +365,7 @@ int main( int argc, char** argv )
 		for(int i = 0; i < NUMCHANNELS; i++) {
 			CLAM::SendFloatToInControl(*tracks[i], "Gain", 0.0);
 		}
-
+*/
 		CLAM::Processing& generator = network.GetProcessing("Generator");
 		//CLAM::SendFloatToInControl(generator, "Amplitude", 1.0);
 
@@ -425,7 +425,7 @@ int main( int argc, char** argv )
 
 		//Festival TTS
 	
- 	/*	EST_Wave wave;
+ 		EST_Wave wave;
    		int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;
@@ -437,25 +437,40 @@ int main( int argc, char** argv )
 
     		//festival_eval_command("(voice_ked_diphone)");
     		// Say some text;
-		char * s = "hello world";
-    		worked = festival_say_text(s);
-		std::cout << worked << "---***Done***\n";
+		//char * s = "hello world";
+    		//worked = festival_say_text(s);
+		//std::cout << worked << "---***Done***\n";
 
     		// Convert to a waveform
-    		//festival_text_to_wave("hello world",wave);
-	    	//wave.save("/tmp/wave.wav","riff");
+    		festival_text_to_wave("hello goodbye cliff apple birds apple zoo zebra donkey",wave);
+	    	wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
     		// festival_say_file puts the system in async mode so we better
    	        // wait for the spooler to reach the last waveform before exiting
     		// This isn't necessary if only festival_say_text is being used (and
     		// your own wave playing stuff)
     		festival_wait_for_spooler();
-*/
+
+		CLAM::Processing& tts = network.GetProcessing("TTS");
+		CLAM::SendFloatToInControl(tts, "Seek", 0.0);
+    		
+		sleep(2);
+
+    		festival_text_to_wave("RAHUL RAHUL RAHUL",wave);
+	    	wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
+		
+		CLAM::SendFloatToInControl(tts, "Seek", 0.0);
+
+		//festival_text_to_wave("hello",wave);
+	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
+		
+
+
 		cout << "before main while" << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
 			//adjustAmps(channels, amps);
-			playTracks(channels, tracks);
+			//playTracks(channels, tracks);
 		}
 		delete [] channels;
 		delete [] mixers;

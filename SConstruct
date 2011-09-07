@@ -77,7 +77,7 @@ if sys.platform=='linux2' :
 
 env.Append( CPPPATH=['/usr/lib/speech_tools/include', '/usr/include/speech_tools/'] )
 
-programs = [ env.Program(target=program, source = [main] + sources, LIBS=['clam_core', 'clam_audioio', 'clam_processing', 'QtCore', 'QtGui', 'Festival', 'estools', 'estbase', 'eststring', 'curl'], LIBPATH=['/usr/lib/speech_tools/lib/','/usr/lib/', '/usr/lib/speech_tools/include/', '/usr/local/lib/']) 
+programs = [ env.Program(target=program, source = [main] + sources, LIBS=['clam_core', 'clam_audioio', 'clam_processing', 'QtCore', 'QtGui', 'Festival', 'estools', 'estbase', 'eststring', 'curl','portaudio'], LIBPATH=['/usr/lib/speech_tools/lib/','/usr/lib/', '/usr/lib/speech_tools/include/', '/usr/local/lib/']) 
 	for program, main in mainSources.items()]
 
 

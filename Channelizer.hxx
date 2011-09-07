@@ -67,7 +67,7 @@ public:
 	Channelizer( const Config& config = Config())
 		: _input("Input", this)
 		, _max(0.)
-		, _bufferCount(0)
+		, _bufferCount(-1)
 		
 	{
 		Configure( config );
@@ -127,7 +127,7 @@ public:
 			if (current<-_max) _max=-current;
 		}
 		logEnergy = 60 + 20*log(_max);
-		if (logEnergy > 15) {
+		if (logEnergy > 0) {
 			bufferSNS = 1;
 			totalEnergySpeaking += logEnergy; //cchien
 			energySpeakingCount++; // used in log energy average
