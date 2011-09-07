@@ -156,16 +156,16 @@ public:
 		{
 			
 			pData[_bufferCount] = bufferSNS;
-			//cout << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 				
+			//cerr << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 				
 			total += bufferSNS;
 			//printf("window size is %d, bufferCount is %d, total is %f\n", windowSize, _bufferCount, total);
 			if (windowSize - _bufferCount == 1) {
 				_average = total/(float)windowSize; 
-				//cout << "** setting average! its " << _average << endl;
+				//cerr << "** setting average! its " << _average << endl;
 			}
  		}
 		else 
-		{	//cout << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 
+		{	//cerr << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 
 			total -= pData[_bufferCount % windowSize];
 			pData[_bufferCount % windowSize] = bufferSNS;
 			total += bufferSNS;
@@ -173,28 +173,28 @@ public:
 			//printf("stepSize: %d, index: %d\n", stepSize, (_bufferCount % windowSize));
 			if (_bufferCount % stepSize == 0) {
 				_average = total/windowSize; 
-				//cout << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << endl;
+				//cerr << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << endl;
 				if (_average >= 0.5) windowSNS = 1;
 				else windowSNS = 0;
 			}
 		}
 
 		if (windowSNS<1 && IS_NOT_TALKING(state)) {
-			//cout << "not talking! state is " << state << endl;
+			//cerr << "not talking! state is " << state << endl;
 			state = NOT_TALKING;
 		}
 		else if (windowSNS==1 && IS_NOT_TALKING(state)) {
 			gettimeofday(&_starttime,0x0);				
 			state = START_TALKING;
 			newUtterance = true;
-			//cout << "** started talking! " << getPName() << " state is " << state << endl;
+			//cerr << "** started talking! " << getPName() << " state is " << state << endl;
 		}
 		else if (windowSNS==1 && (IS_START_TALKING(state) || (IS_STILL_TALKING(state)))) {		
 			state = STILL_TALKING;
-			//cout << "** still talking! state is " << state << endl;
+			//cerr << "** still talking! state is " << state << endl;
 		}
 		else if (windowSNS<1 && IS_STILL_TALKING(state)) {
-			//cout << "** stopped talking! **";
+			//cerr << "** stopped talking! **";
 			state = STOP_TALKING;
 			gettimeofday(&_endtime,0x0);				
 			timeval_subtract(&_timediff, &_endtime, &_starttime);
@@ -212,7 +212,7 @@ public:
 			diffTime = 0.0;
 		}
 		else if (windowSNS<1 && IS_STOP_TALKING(state)) {
-			//cout << "stopped talking!\n";
+			//cerr << "stopped talking!\n";
 			state = NOT_TALKING;
 			newUtterance = false; // TODO
 		}
@@ -237,7 +237,7 @@ public:
 			loudSoft = 0;
 		}
 
-		//cout << "\t windowSNS: " << windowSNS << ", state: " << hex << state << endl;
+		//cerr << "\t windowSNS: " << windowSNS << ", state: " << hex << state << endl;
 		gettimeofday(&_endtime,0x0);		
 		timeval_subtract(&_timediff, &_endtime, &_sessionStart);
 		sessionTime = (double)_timediff.tv_sec + (double)0.001*_timediff.tv_usec/1000; //time in sec.ms			
@@ -245,7 +245,7 @@ public:
 		
 		//(totalActivityLevel >= dominanceThreshold) ? isDominant = true : isDominant = false;
 
-		//cout << _name << " total spoken for " << sessionTime << " secs\n";
+		//cerr << _name << " total spoken for " << sessionTime << " secs\n";
 		_input.Consume();
 		return true;
 	}
@@ -300,22 +300,22 @@ public:
 		float energyNotSpeakingAvg = totalEnergyNotSpeaking / energyNotSpeakingCount;
 		float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
 		volFile << "Speaking\tNot Speaking\tS-to-R\n";
-		cout << "Speaking\tNot Speaking\tS-to-R\n";
+		cerr << "Speaking\tNot Speaking\tS-to-R\n";
 		volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
-		cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+		cerr << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
 		volFile.close();
 	}
 	
 	inline void printSpeakerStats() {
-		cout << "\t" << _name << " spoke for " << diffTime << " secs\n";
-		cout << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
-		cout << "\t" << _name << " TSLNoU (total speaking length no utterances): " << totalSpeakingLengthNoUtterances << " secs\n";
-		cout << "\t" << _name << " TSI (total speaking interrupts): " << totalSpeakingInterrupts << " times\n";
-		cout << "\t" << _name << " TSI (total speaking unsuccessful interrupts): " << totalSpeakingUnsuccessfulInterrupts << " times\n";
-		cout << "\t" << _name << " Dominance Percentage: " << totalActivityLevel*100 << "%\n";
-		cout << "\t" << _name << " Is Dominant: ";
-	       (isDominant) ? cout	<< "YES\n" : cout << "NO\n";
-		cout << "\t" << _name << " Session Time: " << sessionTime << " sec\n";
+		cerr << "\t" << _name << " spoke for " << diffTime << " secs\n";
+		cerr << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
+		cerr << "\t" << _name << " TSLNoU (total speaking length no utterances): " << totalSpeakingLengthNoUtterances << " secs\n";
+		cerr << "\t" << _name << " TSI (total speaking interrupts): " << totalSpeakingInterrupts << " times\n";
+		cerr << "\t" << _name << " TSI (total speaking unsuccessful interrupts): " << totalSpeakingUnsuccessfulInterrupts << " times\n";
+		cerr << "\t" << _name << " Dominance Percentage: " << totalActivityLevel*100 << "%\n";
+		cerr << "\t" << _name << " Is Dominant: ";
+	       (isDominant) ? cerr	<< "YES\n" : cerr << "NO\n";
+		cerr << "\t" << _name << " Session Time: " << sessionTime << " sec\n";
 	}
 
 	 /**

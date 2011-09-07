@@ -553,13 +553,13 @@ int main( int argc, char** argv )
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 
-/*runLoginManager();
+runLoginManager();
 
 		while(CURRNUMCHANNELS == 0) {
 			cerr << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
 			sleep(5);
 		}	
-*/
+
 		cerr << "Starting supervisor..." << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
