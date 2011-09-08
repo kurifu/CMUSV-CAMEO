@@ -56,12 +56,13 @@ const int NUMCHANNELS = 4;
 static int mySocketFD;
 int CURRNUMCHANNELS = 0;
 //const int SLEEP_WAIT = 5;
-static const int LISTEN_PORT = 4444;
+static int LISTEN_PORT = 4444;
+jack_client_t * jackClient;
 
 // Number of seconds to wait for someone to login before starting supervisor
 //static const int LOGIN_WAIT = 5;
 
-void initialize() {
+inline void initialize() {
         mySocketFD = socket(AF_INET, SOCK_STREAM, 0);
 
         int optval = 1;
@@ -102,7 +103,7 @@ char* getSocketPeerIp(int sock) {
 */
 //void* connect(void* ptr) {
 void connect() {
-        //while(1) {
+        while(1) {
                 socklen_t clientAddrLen;
                 struct sockaddr_in serverAddr, clientAddr;
                 int clientSocketFD;
@@ -118,8 +119,18 @@ void connect() {
                 serverAddr.sin_port = htons(LISTEN_PORT);
 
                 if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
-                        cerr << "ERROR on binding socket, exiting..." << endl;
-                        pthread_exit(0);
+                        cerr << "ERROR on binding socket, trying port " << ++LISTEN_PORT << endl;
+			
+			initialize();
+                	bzero((char*) &serverAddr, sizeof(serverAddr));
+                	serverAddr.sin_family = AF_INET;
+                	serverAddr.sin_addr.s_addr = INADDR_ANY;
+                	serverAddr.sin_port = htons(LISTEN_PORT);
+                	
+			if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
+				cerr << "New port doesn't work either...??? " << endl;
+				return;
+			}
                 }
 
                 cerr << "Waiting for incoming client... " << endl;
@@ -136,21 +147,49 @@ void connect() {
                 }
 
                 char* ip = getSocketPeerIp(clientSocketFD);
-                if(ip != NULL) {
-                        cerr << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
+		//cerr << "Connected ip is " << ip << endl;
+		//flush(cerr);
+                //if(ip != NULL) {
+                        //cerr << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
                         CURRNUMCHANNELS++;
-                        string command = "jack_netsource -H " + (string)ip;
-                        system("jack_netsource -H 10.0.23.31");
-                        //addChannel();
-                }
-                else {
-                        cerr << "Error getting IP!" << endl;
-                }
+                        string command = "jack_netsource -H " + (string)ip + " &";
+                        system(command.c_str());
 
-                cerr << "Done adding new connection, closing connection..." << endl;
+			sleep(1);
+
+			//cout << "curr num channels is " << CURRNUMCHANNELS << endl;
+		//flush(cout);
+			if(CURRNUMCHANNELS == 1) {
+		//		cout << "Hooking up 2nd channel with ip " << ip << endl;
+		//flush(cout);
+				jack_connect(jackClient, "netjack:capture_1", "client1:AudioSource_2");
+				jack_connect(jackClient, "netjack:capture_2", "client1:AudioSource_2");
+				jack_connect(jackClient, "client1:AudioSink_2", "netjack:playback_1");
+				jack_connect(jackClient, "client1:AudioSink_2", "netjack:playback_2");
+			}
+			else if(CURRNUMCHANNELS == 2) {
+				cerr << "Hooking up 3rd channel with ip " << ip << endl;
+				jack_connect(jackClient, "netjack-01:capture_1", "client1:AudioSource_3");
+				jack_connect(jackClient, "netjack-01:capture_2", "client1:AudioSource_3");
+				jack_connect(jackClient, "client1:AudioSink_3", "netjack-01:playback_1");
+				jack_connect(jackClient, "client1:AudioSink_3", "netjack-01:playback_2");
+			}
+			else if(CURRNUMCHANNELS == 3) {
+				cerr << "Hooking up 4th channel with ip " << ip << endl;
+				jack_connect(jackClient, "netjack-02:capture_1", "client1:AudioSource_4");
+				jack_connect(jackClient, "netjack-02:capture_2", "client1:AudioSource_4");
+				jack_connect(jackClient, "client1:AudioSink_4", "netjack-02:playback_1");
+				jack_connect(jackClient, "client1:AudioSink_4", "netjack-02:playback_2");
+			}
+                //}
+               /* else {
+                        cerr << "Error getting IP!" << endl;
+                }*/
+
                 close(clientSocketFD);
                 close(mySocketFD);
-        //}
+		//pthread_exit(0);
+        }
 }
 
 /**
@@ -163,7 +202,7 @@ void runLoginManager() {
 
         cerr << "Initializing Login Manager..." << endl;
         retval_connect_supervisor = pthread_create(&thread_connect, NULL, connect, (void*) dummyMsg);
-        pthread_join(thread_connect, NULL);
+        //pthread_join(thread_connect, NULL);
         cerr << "LoginManager started successfully." << endl;
 */
 	pid_t pID = fork();
@@ -518,7 +557,7 @@ int main( int argc, char** argv )
 		
 
 		//JACK CODE
-         	jack_client_t * jackClient;
+         	//jack_client_t * jackClient;
          	string jackClientName;
 		jack_status_t jackStatus;
 		jackClient = jack_client_open ( "test", JackNullOption, &jackStatus );
@@ -553,13 +592,13 @@ int main( int argc, char** argv )
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 
-runLoginManager();
+		runLoginManager();
 
-		while(CURRNUMCHANNELS == 0) {
+/*		while(CURRNUMCHANNELS == 0) {
 			cerr << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
 			sleep(5);
 		}	
-
+*/
 		cerr << "Starting supervisor..." << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
