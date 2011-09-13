@@ -10,13 +10,13 @@
 #include <iostream>
 #include <fstream>
 
-/* XMLRPC Libraries */
+/* XMLRPC Libraries 
 #include <cassert>
 #include <cstdlib>
 #include <string>
 #include <xmlrpc-c/girerr.hpp>
 #include <xmlrpc-c/base.hpp>
-#include <xmlrpc-c/client.hpp>
+#include <xmlrpc-c/client.hpp> */
 
 
 /* Speaker Macros */
@@ -205,7 +205,7 @@ public:
 			}
 			
 			printSpeakerStats();
-			sendSpeakerStats();			
+			//sendSpeakerStats();			
 			//writeSpeakerStats();
 			//writeVolStats();
 			
@@ -323,7 +323,7 @@ public:
         * The order in which the statistics are sent are very important, and must be in this specific order:
         * Channel Number, Speaking Length, TSL, TSLNoU, TSI, TSSI, TSUI, Dominance Percentage, Is Dominant
         */
-        inline void sendSpeakerStats() {
+/*        inline void sendSpeakerStats() {
                 cerr << "** Sending data" << endl;
                 xmlrpc_c::clientXmlTransport_curl myTransport;
                 xmlrpc_c::client_xml myClient(&myTransport);
@@ -354,7 +354,7 @@ public:
                         cerr << "Client threw unexpected error." << endl;
                 }
         }
-
+*/
 };
 
 } //namespace
