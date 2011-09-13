@@ -37,9 +37,9 @@
 
 using namespace std;
 
-const static double DOMINANCE_THRESHOLD = .6;
+const static double DOMINANCE_THRESHOLD = .4;
 const static double BEEPLENGTH = 3.0;
-const static double overlapLength = 3.0;
+const static double overlapLength = 2.0;
 double currOverlapLength = 0;
 struct timeval _currTime, _beepTimeDiff, _overlapStartTime;
 bool isOverlapping = false;
@@ -229,7 +229,7 @@ inline void calculateDominance(CLAM::Channelizer* channels[]) {
 	double totalTSL = channels[0]->totalSpeakingLength + channels[1]->totalSpeakingLength + channels[2]->totalSpeakingLength + channels[3]->totalSpeakingLength;
 	for(int i = 0; i < NUMCHANNELS; i++) {
 		channels[i]->totalActivityLevel = channels[i]->totalSpeakingLength / totalTSL;
-		(channels[i]->totalActivityLevel >= DOMINANCE_THRESHOLD) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
+		(channels[i]->totalActivityLevel >= DOMINANCE_THRESHOLD && channels[i]->totalActivityLevel < 1) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
 	}
 }
 
@@ -288,6 +288,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 	diffTime = 0.0;
 
 	for(int i = 0; i < NUMCHANNELS; i++) {
+/*
 		// If you've been marked but haven't been beeped yet
 		if(channels[i]->isGonnaGetBeeped && !channels[i]->isBeingBeeped) {
 			gettimeofday(&(channels[i]->_beepStartTime),0x0);
@@ -306,6 +307,10 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 3", 0.0);
 				channels[i]->isBeingBeeped = false;
 			}
+		}
+*/
+		if(channels[i]->isDominant) {
+			
 		}
 	}
 }
@@ -336,7 +341,7 @@ inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 }
 
 
-inline string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
+inline void giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 	//cerr << "giveFloorToLeastDominantGuy" << endl;
 	short channelThatIsLeastDominant = channelThatHasFloor;
 	ostringstream oss;
@@ -350,13 +355,13 @@ inline string giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 		}
 	}
 
-	oss << (channelThatHasFloor+1);
+	/*oss << (channelThatHasFloor+1);
 	string output = "Channel " + oss.str() + ", you've been talking for quite some time, why don't you let Channel ";
 	oss.str("");
 	oss << (channelThatIsLeastDominant+1);
 	output += oss.str() + " take over?";
 	channelThatHasFloor = channelThatIsLeastDominant;
-	return output;
+	return output;*/
 }
 
 
@@ -370,6 +375,7 @@ string updateFloorState(CLAM::Channelizer* channels[]) {
 	// Case 1: No one has floor, only 1 person talking
 	// 	   Figure out who to give it to
 	if(FLOOR_FREE) {
+		//cerr << "Floor is free!" << endl;
 		int numWhoWantFloor = 0;
 		short channelWhoWantsFloor = -1;
 		for(int i = 0; i < NUMCHANNELS; i++) {
@@ -391,6 +397,7 @@ string updateFloorState(CLAM::Channelizer* channels[]) {
 	}
 	// Case 2: Someone has floor; check everyone else's status before updating anything
 	else {
+		//cerr << "Floor is NOT free!" << endl;
 		// Case 2.1: Only 1 guy talking and holding the floor, most common case, let him continue
 		if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 == numSpeakers)) {
 			isOverlapping = false;
@@ -400,6 +407,7 @@ string updateFloorState(CLAM::Channelizer* channels[]) {
 		// 	If there is an overlap for longer than overlapLength, mark everyone who does not 
 		// 	have the floor and is talking; whoever is marked will get beeped
 		else if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 != numSpeakers)) {
+			//cerr << "BARGE IN! " << endl;
 			for (int i = 0; i < NUMCHANNELS; i++) {
 				if((i != channelThatHasFloor) && (IS_HOLD_FLOOR(channels[i]->floorAction))) {
 					channels[i]->totalSpeakingInterrupts++;
@@ -407,8 +415,8 @@ string updateFloorState(CLAM::Channelizer* channels[]) {
 			}
 
 
-			if(channels[channelThatHasFloor]->isDominant)
-				outputMsg = giveFloorToLeastDominantGuy(channels);
+			//if(channels[channelThatHasFloor]->isDominant)
+			//	outputMsg = giveFloorToLeastDominantGuy(channels);
 
 			if(!isOverlapping) {
 				gettimeofday(&_overlapStartTime, 0x0);
@@ -459,7 +467,7 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	//dataFile.close();
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
-		//cerr << notifyMsg << endl;
+		cerr << notifyMsg << endl;
 	}
 	return notifyMsg;
 }
