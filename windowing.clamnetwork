@@ -87,8 +87,6 @@ p, li { white-space: pre-wrap; }
     <SamplingRate>16000</SamplingRate>
   </processing>
 
-  <processing id="Oscilloscope" position="868,521" size="347,238" type="Oscilloscope"/>
-
   <processing id="Seek" position="176,378" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>1</Default>

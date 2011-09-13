@@ -29,7 +29,7 @@
 
 const static double dominanceThreshold = .6;
 const static double beepLength = 3.0;
-const static double overlapLength = 3.0;
+const static double overlapLength = 1.0;
 double currOverlapLength = 0;
 struct timeval _currTime, _beepTimeDiff, _overlapStartTime;
 bool isOverlapping = false;
