@@ -82,6 +82,7 @@ env.Append( CPPPATH=['/usr/lib/speech_tools/include', '/usr/include/speech_tools
 programs = [ env.Program(target=program, source = [main] + sources, LIBS=['clam_core', 'clam_audioio', 'clam_processing', 'QtCore', 'QtGui', 'Festival', 'estools', 'estbase', 'eststring', 'curl'], LIBPATH=['/usr/lib/speech_tools/lib/','/usr/lib/', '/usr/lib/speech_tools/include/', '/usr/local', '/usr/local/include', '/usr/local/lib/']) 
 	for program, main in mainSources.items()]
 
+
 env.Default(programs)
 
 #'xmlrpc_client++', 'xmlrpc_client', 'xmlrpc++', 'xmlrpc', 'xmlrpc_util', 'xmlrpc_xmlparse', 'xmlrpc_xmltok', 'xmlrpc_packetsocket'
