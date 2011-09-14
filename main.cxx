@@ -39,7 +39,7 @@
 
 using namespace std;
 
-const static double DOMINANCE_THRESHOLD = .5;
+const static double DOMINANCE_THRESHOLD = 50;
 const static double BEEPLENGTH = 3.0;
 const static double overlapLength = 2.0;
 double currOverlapLength = 0;
@@ -236,8 +236,8 @@ int error(const string & msg)
 inline void calculateDominance(CLAM::Channelizer* channels[]) {
 	double totalTSL = channels[0]->totalSpeakingLength + channels[1]->totalSpeakingLength + channels[2]->totalSpeakingLength + channels[3]->totalSpeakingLength;
 	for(int i = 0; i < NUMCHANNELS; i++) {
-		channels[i]->totalActivityLevel = channels[i]->totalSpeakingLength / totalTSL;
-		(channels[i]->totalActivityLevel >= DOMINANCE_THRESHOLD && channels[i]->totalActivityLevel < 1) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
+		channels[i]->totalActivityLevel = channels[i]->totalSpeakingLength / totalTSL * 100;
+		(channels[i]->totalActivityLevel >= DOMINANCE_THRESHOLD && channels[i]->totalActivityLevel < 100) ? channels[i]->isDominant = true : channels[i]->isDominant = false;
 	}
 }
 
@@ -578,6 +578,11 @@ int main( int argc, char** argv )
 		myp2.SetPName("Channel 2");
 		myp3.SetPName("Channel 3");
 		myp4.SetPName("Channel 4");		
+
+		myp1.channelNum = 1;
+		myp2.channelNum = 2;
+		myp3.channelNum = 3;
+		myp4.channelNum = 4;
 
 		int winSize = mic.GetOutPort("1").GetSize();
 		myp1.GetInPort("Input").SetSize(winSize);	
