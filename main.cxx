@@ -288,24 +288,30 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 	}
 }
 
+/**
+* If channel is the maximum number of channels, send TTS to every channel, otherwise only send to the channel specified by arg 'channel'
+*/
 void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
-	 EST_Wave wave;
+	EST_Wave wave;
 
-        int heap_size = 21000000;  // default scheme heap size
-        int load_init_files = 1; // we want the festival init files loaded
-        int worked = 0;
-
-	//festival_initialize(load_init_files,heap_size);
 	CLAM::Processing& tts = network.GetProcessing("TTS");
 
-	for(int i = 0; i < NUMCHANNELS; i++) {
-		if(i == channel) {
-			cerr << "enabling channel " << i << "'s tts" << endl;
-			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 4", 1.0);
-		}
-		else {
-			cerr << "muting channel " << i << "'s tts" << endl;
-			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 4", 0.0);
+	if(channel == NUMCHANNELS) {
+		CLAM::SendFloatToInControl(*(mixers[0]), "Gain 5", 1.0);
+		CLAM::SendFloatToInControl(*(mixers[1]), "Gain 5", 1.0);
+		CLAM::SendFloatToInControl(*(mixers[2]), "Gain 5", 1.0);
+		CLAM::SendFloatToInControl(*(mixers[3]), "Gain 5", 1.0);
+	}
+	else {
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			if(i == channel) {
+				//cerr << "enabling channel " << i << "'s tts" << endl;
+				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 5", 1.0);
+			}
+			else {
+				//cerr << "muting channel " << i << "'s tts" << endl;
+				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 5", 0.0);
+			}
 		}
 	}
 	festival_text_to_wave(msg, wave);
@@ -319,7 +325,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
-			cerr << "Sending an alert to channel " << i << endl;
+			//cerr << "Sending an alert to channel " << i << endl;
                         textToSpeech("You've been speaking for a long time, why don't you let others have a chance?", i, channels, mixers);
 			channels[i]->isGonnaGetBeeped = false;
                 }
@@ -365,14 +371,6 @@ inline void giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 			}
 		}
 	}
-
-	/*oss << (channelThatHasFloor+1);
-	string output = "Channel " + oss.str() + ", you've been talking for quite some time, why don't you let Channel ";
-	oss.str("");
-	oss << (channelThatIsLeastDominant+1);
-	output += oss.str() + " take over?";
-	channelThatHasFloor = channelThatIsLeastDominant;
-	return output;*/
 }
 
 
@@ -631,15 +629,17 @@ int main( int argc, char** argv )
 			sleep(5);
 		}	
 */
-		cerr << "Starting supervisor..." << endl;
+
+                //textToSpeech("You've been speaking for a long time, why don't you let others have a chance?", i, channels, mixers);
 		//Festival TTS
-		EST_Wave wave;
+		//EST_Wave wave;
 	
    		int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;
 
     		festival_initialize(load_init_files,heap_size);
+	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
 
     		// Say simple file
     		//festival_say_file("/etc/motd");
@@ -651,30 +651,27 @@ int main( int argc, char** argv )
 		//std::cout << worked << "---***Done***\n";
 
     		// Convert to a waveform
-    		festival_text_to_wave("hello goodbye cliff apple birds apple zoo zebra donkey",wave);
-	    	wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
+    		//festival_text_to_wave("hello goodbye cliff apple birds apple zoo zebra donkey",wave);
+	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
     		// festival_say_file puts the system in async mode so we better
    	        // wait for the spooler to reach the last waveform before exiting
     		// This isn't necessary if only festival_say_text is being used (and
     		// your own wave playing stuff)
-    		festival_wait_for_spooler();
+    		//festival_wait_for_spooler();
 
-		CLAM::Processing& tts = network.GetProcessing("TTS");
-		CLAM::SendFloatToInControl(tts, "Seek", 0.0);
+		//CLAM::Processing& tts = network.GetProcessing("TTS");
+		//CLAM::SendFloatToInControl(tts, "Seek", 0.0);
     		
-		sleep(2);
+		//sleep(2);
 
-    		festival_text_to_wave("RAHUL RAHUL RAHUL",wave);
-	    	wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
-		CLAM::SendFloatToInControl(tts, "Seek", 0.0);
+    		//festival_text_to_wave("RAHUL RAHUL RAHUL",wave);
+	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
+		//CLAM::SendFloatToInControl(tts, "Seek", 0.0);
 
 		//festival_text_to_wave("hello",wave);
 	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
-		
 
-
-		cout << "before main while" << endl;
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
 			//adjustAmps(channels, amps);

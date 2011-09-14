@@ -96,7 +96,7 @@ p, li { white-space: pre-wrap; }
     <NSinks>4</NSinks>
   </processing>
 
-  <processing id="AudioSource" position="223,49" size="142,108" type="AudioSource">
+  <processing id="AudioSource" position="184,54" size="142,108" type="AudioSource">
     <NSources>4</NSources>
   </processing>
 
@@ -115,7 +115,7 @@ p, li { white-space: pre-wrap; }
     <SamplingRate>16000</SamplingRate>
   </processing>
 
-  <processing id="Seek" position="392,586" size="191,78" type="OutControlSender">
+  <processing id="Seek" position="386,569" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>1</Default>
     <Max>1</Max>
@@ -124,16 +124,7 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="Seek_1" position="32,309" size="191,78" type="OutControlSender">
-    <Min>0</Min>
-    <Default>0.5</Default>
-    <Max>1</Max>
-    <Step>0.01</Step>
-    <ControlRepresentation>Horizontal Slider</ControlRepresentation>
-    <Mapping>Linear</Mapping>
-  </processing>
-
-  <processing id="TTS" position="394,673" size="207,57" type="MonoAudioFileReader">
+  <processing id="TTS" position="383,666" size="207,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
@@ -144,28 +135,28 @@ p, li { white-space: pre-wrap; }
     <DefaultGains size="4">1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="Track" position="-5,205" size="207,57" type="MonoAudioFileReader">
+  <processing id="Track" position="58,285" size="207,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/bassline1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
-    <Loop>0</Loop>
+    <Loop>1</Loop>
   </processing>
 
-  <processing id="Track_1" position="33,405" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav</SourceFile>
+  <processing id="Track_1" position="54,346" size="222,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/geetar1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
-    <Loop>0</Loop>
+    <Loop>1</Loop>
   </processing>
 
-  <processing id="Track_2" position="14,592" size="222,57" type="MonoAudioFileReader">
+  <processing id="Track_2" position="53,408" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/drums1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
-    <Loop>0</Loop>
+    <Loop>1</Loop>
   </processing>
 
-  <processing id="Track_3" position="56,777" size="222,57" type="MonoAudioFileReader">
+  <processing id="Track_3" position="55,467" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/piano1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
-    <Loop>0</Loop>
+    <Loop>1</Loop>
   </processing>
 
   <port_connection>
@@ -396,11 +387,6 @@ p, li { white-space: pre-wrap; }
   <control_connection>
     <out>Seek.out</out>
     <in>TTS.Seek</in>
-  </control_connection>
-
-  <control_connection>
-    <out>Seek_1.out</out>
-    <in>Track_1.Seek</in>
   </control_connection>
 
 </network>

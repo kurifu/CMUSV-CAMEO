@@ -124,9 +124,36 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="Seek_1" position="32,309" size="191,78" type="OutControlSender">
+  <processing id="Seek_1" position="-7,115" size="191,78" type="OutControlSender">
     <Min>0</Min>
-    <Default>0.5</Default>
+    <Default>1</Default>
+    <Max>1</Max>
+    <Step>0.01</Step>
+    <ControlRepresentation>Horizontal Slider</ControlRepresentation>
+    <Mapping>Linear</Mapping>
+  </processing>
+
+  <processing id="Seek_2" position="31,323" size="191,78" type="OutControlSender">
+    <Min>0</Min>
+    <Default>1</Default>
+    <Max>1</Max>
+    <Step>0.01</Step>
+    <ControlRepresentation>Horizontal Slider</ControlRepresentation>
+    <Mapping>Linear</Mapping>
+  </processing>
+
+  <processing id="Seek_3" position="14,508" size="191,78" type="OutControlSender">
+    <Min>0</Min>
+    <Default>1</Default>
+    <Max>1</Max>
+    <Step>0.01</Step>
+    <ControlRepresentation>Horizontal Slider</ControlRepresentation>
+    <Mapping>Linear</Mapping>
+  </processing>
+
+  <processing id="Seek_4" position="54,693" size="191,78" type="OutControlSender">
+    <Min>0</Min>
+    <Default>1</Default>
     <Max>1</Max>
     <Step>0.01</Step>
     <ControlRepresentation>Horizontal Slider</ControlRepresentation>
@@ -151,7 +178,7 @@ p, li { white-space: pre-wrap; }
   </processing>
 
   <processing id="Track_1" position="33,405" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/geetar1.mp3</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
@@ -400,7 +427,22 @@ p, li { white-space: pre-wrap; }
 
   <control_connection>
     <out>Seek_1.out</out>
+    <in>Track.Seek</in>
+  </control_connection>
+
+  <control_connection>
+    <out>Seek_2.out</out>
     <in>Track_1.Seek</in>
+  </control_connection>
+
+  <control_connection>
+    <out>Seek_3.out</out>
+    <in>Track_2.Seek</in>
+  </control_connection>
+
+  <control_connection>
+    <out>Seek_4.out</out>
+    <in>Track_3.Seek</in>
   </control_connection>
 
 </network>
