@@ -1,4 +1,5 @@
 *.zip
+*.swp
 *.plot
 *.o
 MyProgram

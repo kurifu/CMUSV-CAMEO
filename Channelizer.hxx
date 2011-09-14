@@ -74,6 +74,9 @@ public:
 	unsigned short state, floorAction;
 	int overlapCounter;
 	bool isDominant, isBeingBeeped, isGonnaGetBeeped, newUtterance;
+
+	// Tracks whether or not we've logged an interrupt yet, used in main's updateFloorState function
+	bool interruptLogged;
 	struct timeval _beepStartTime, _overlapTime, _currentBeepLength;
 	
 	Channelizer( const Config& config = Config())
@@ -120,6 +123,7 @@ public:
 		isBeingBeeped = false;
 		isGonnaGetBeeped = false;
 		newUtterance = false;
+		interruptLogged = false;
 	}
 	
 
@@ -210,6 +214,7 @@ public:
 			//writeVolStats();
 			
 			diffTime = 0.0;
+			interruptLogged = false;
 		}
 		else if (windowSNS<1 && IS_STOP_TALKING(state)) {
 			//cerr << "stopped talking!\n";

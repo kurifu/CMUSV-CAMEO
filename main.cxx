@@ -421,7 +421,11 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			//cerr << "BARGE IN! " << endl;
 			for (int i = 0; i < NUMCHANNELS; i++) {
 				if((i != channelThatHasFloor) && (IS_HOLD_FLOOR(channels[i]->floorAction))) {
-					channels[i]->totalSpeakingInterrupts++;
+					// Only log if we haven't logged yet; this gets reset automatically by the Channelizer
+					if(channels[i]->interruptLogged == false) {
+						channels[i]->totalSpeakingInterrupts++;
+						channels[i]->interruptLogged = true;
+					}
 				}
 			}
 
