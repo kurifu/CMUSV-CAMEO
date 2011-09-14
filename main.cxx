@@ -39,7 +39,7 @@
 
 using namespace std;
 
-const static double DOMINANCE_THRESHOLD = .4;
+const static double DOMINANCE_THRESHOLD = .5;
 const static double BEEPLENGTH = 3.0;
 const static double overlapLength = 2.0;
 double currOverlapLength = 0;
@@ -47,6 +47,12 @@ struct timeval _currTime, _beepTimeDiff, _overlapStartTime;
 bool isOverlapping = false;
 double diffTime = 0.0;
 const int NUMCHANNELS = 4;
+
+/***
+* Festival
+****/
+//const EST_Wave wave;
+CLAM::Network network;
 
 //////////////////////////////
 // CLAM Setup
@@ -282,41 +288,44 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 	}
 }
 
+void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+	 EST_Wave wave;
+
+        int heap_size = 21000000;  // default scheme heap size
+        int load_init_files = 1; // we want the festival init files loaded
+        int worked = 0;
+
+	//festival_initialize(load_init_files,heap_size);
+	CLAM::Processing& tts = network.GetProcessing("TTS");
+
+	for(int i = 0; i < NUMCHANNELS; i++) {
+		if(i == channel) {
+			cerr << "enabling channel " << i << "'s tts" << endl;
+			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 4", 1.0);
+		}
+		else {
+			cerr << "muting channel " << i << "'s tts" << endl;
+			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 4", 0.0);
+		}
+	}
+	festival_text_to_wave(msg, wave);
+        wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
+	CLAM::SendFloatToInControl(tts, "Seek", 0.0);
+}
+
 // Beeps any channels that have been overlapping for at least 5 seconds and do not have the floor
 // Stops beeping after 3 seconds and starts all over again
 inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 
-	gettimeofday(&_currTime, 0x0);
-	diffTime = 0.0;
-
-	for(int i = 0; i < NUMCHANNELS; i++) {
-/*
-		// If you've been marked but haven't been beeped yet
-		if(channels[i]->isGonnaGetBeeped && !channels[i]->isBeingBeeped) {
-			gettimeofday(&(channels[i]->_beepStartTime),0x0);
-			channels[i]->isBeingBeeped = true;
+        for(int i = 0; i < NUMCHANNELS; i++) {
+		if(channels[i]->isGonnaGetBeeped) {
+			cerr << "Sending an alert to channel " << i << endl;
+                        textToSpeech("You've been speaking for a long time, why don't you let others have a chance?", i, channels, mixers);
 			channels[i]->isGonnaGetBeeped = false;
-			//cerr << "starting beep\n";
-			CLAM::SendFloatToInControl(*(mixers[i]), "Gain 3", 1.0);
-		}
-		// If you're currently being beeped, make sure we don't beep you longer than X seconds
-		else if (channels[i]->isBeingBeeped) {
-			channels[i]->timeval_subtract(&_beepTimeDiff, &_currTime, &(channels[i]->_beepStartTime));
-			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+                }
+        }
 
-			// Turn off beep
-			if(diffTime >= BEEPLENGTH) {
-				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 3", 0.0);
-				channels[i]->isBeingBeeped = false;
-			}
-		}
-*/
-		if(channels[i]->isDominant) {
-			
-		}
-	}
 }
-
 
 // Looks at each Speaker State, updates each channel's Floor Action State
 void updateFloorActions(CLAM::Channelizer* channels[]) {
@@ -368,7 +377,7 @@ inline void giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
 
 
 // Looks at each Floor Action, updates the global Floor State
-string updateFloorState(CLAM::Channelizer* channels[]) {
+string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 	string outputMsg;
 	ostringstream oss;
 
@@ -430,13 +439,22 @@ string updateFloorState(CLAM::Channelizer* channels[]) {
 			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
 			currOverlapLength = diffTime;
 			if(currOverlapLength >= overlapLength) {
+				cerr << "overlapped for more than 2 sec" << endl;
 				
 				// Mark everyone who is talking that doesn't have the floor
 				for (int i = 0; i < NUMCHANNELS; i++) {
-					if((i != channelThatHasFloor) && (IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction))) {
+					//if((i == channelThatHasFloor) && (IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction))) {
+					// Dominant Case
+					if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
+						cerr <<"inside!" << endl;
 						channels[i]->isGonnaGetBeeped = true;
+						//cerr <<"inside!" << endl;
+						//adjustAlerts(channels, mixers);
 					}
 				}
+
+				
+
 				currOverlapLength = 0.0;
 				isOverlapping = false;	// TODO: may not be a good var name
 			}
@@ -463,7 +481,7 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 
 	updateFloorActions(channels);
 
-	notifyMsg = updateFloorState(channels);
+	notifyMsg = updateFloorState(channels, mixers);
 
 	//dataFile << "</MultiPartySpeech>\n";
 	//dataFile.close();
@@ -505,7 +523,7 @@ int main( int argc, char** argv )
 		CLAM::AudioManager manager( SAMPLERATE, SIZE );
 		manager.Start();
 
-		CLAM::Network network;
+		//CLAM::Network network;
 		network.SetPlayer(new CLAM::JACKNetworkPlayer("client1"));
 
 		try {
@@ -611,8 +629,8 @@ int main( int argc, char** argv )
 */
 		cerr << "Starting supervisor..." << endl;
 		//Festival TTS
+		EST_Wave wave;
 	
- 		EST_Wave wave;
    		int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;
@@ -645,7 +663,6 @@ int main( int argc, char** argv )
 
     		festival_text_to_wave("RAHUL RAHUL RAHUL",wave);
 	    	wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
-		
 		CLAM::SendFloatToInControl(tts, "Seek", 0.0);
 
 		//festival_text_to_wave("hello",wave);
