@@ -178,7 +178,7 @@ p, li { white-space: pre-wrap; }
   </processing>
 
   <processing id="Track_1" position="33,405" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/vibraphones.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
@@ -189,7 +189,7 @@ p, li { white-space: pre-wrap; }
     <Loop>0</Loop>
   </processing>
 
-  <processing id="Track_3" position="55,777" size="222,57" type="MonoAudioFileReader">
+  <processing id="Track_3" position="55,776" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/tabla.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>

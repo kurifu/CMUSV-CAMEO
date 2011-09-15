@@ -17,7 +17,9 @@
 #include <string>
 #include <cstdlib>
 #include <cerrno>
+#include <sstream>
 
+/* Data/Login Libraries */
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -28,8 +30,18 @@
 #include <sys/time.h>
 #include <fstream>
 #include <fcntl.h>
+
 /* Festival */
 #include "/usr/include/festival/festival.h"
+
+using namespace std;
+
+/*************
+* CLAM Setup *
+*************/
+CLAM::Network network;
+jack_client_t * jackClient;
+int channelThatHasFloor = -1;
 
 #define IS_NOT_TALKING(x)	(x & NOT_TALKING)
 #define IS_START_TALKING(x)	(x & START_TALKING)
@@ -37,40 +49,48 @@
 #define IS_STOP_TALKING(x)	(x & STOP_TALKING)
 #define FLOOR_FREE		-1 == channelThatHasFloor
 
-using namespace std;
-
+/*********************
+* Dominance/Dormancy *
+*********************/
+// Percentage of activity a channel needs to achieve to be considered dominant
 const static double DOMINANCE_THRESHOLD = 50;
-const static double BEEPLENGTH = 3.0;
-const static double overlapLength = 2.0;
-double currOverlapLength = 0;
-struct timeval _currTime, _beepTimeDiff, _overlapStartTime;
-bool isOverlapping = false;
-double diffTime = 0.0;
+
+// Number of seconds an overlap can occur before we take action
+const static double OVERLAP_LENGTH = 2.0;
+
+// Maximum number of channels we can support, as determined by the CLAM network layout
 const int NUMCHANNELS = 4;
 
-/***
-* Festival
-****/
-//const EST_Wave wave;
-CLAM::Network network;
+// Maximum percentage of activity a channel needs to achieve to be considered dormant
+const static double DORMANCY_PERCENTAGE = 10;
 
-//////////////////////////////
-// CLAM Setup
-//////////////////////////////
+// Number of seconds before we encourage the most dormant participant to speak up
+const static double DORMANCY_INTERVAL = 100;
+
+double currOverlapLength = 0;
+bool isOverlapping = false;
+
+struct timeval _currTime, _beepTimeDiff, _overlapStartTime, _dormancyInterval, _dormancyIntervalHolder;
+double diffTime = 0.0;
+
+/***********
+* Festival *
+***********/
+const static string TTS_GAIN_PORT = "Gain 4";
+
+/********************
+* Background Tracks *
+********************/
+const static string BG_GAIN_PORT = "Gain 5";
 
 /********
 * Login *
 ********/
 static int mySocketFD;
 int CURRNUMCHANNELS = 0;
-//const int SLEEP_WAIT = 5;
 static int LISTEN_PORT = 4444;
-jack_client_t * jackClient;
 
-// Number of seconds to wait for someone to login before starting supervisor
-//static const int LOGIN_WAIT = 5;
-
-inline void initialize() {
+inline void initializeSocket() {
         mySocketFD = socket(AF_INET, SOCK_STREAM, 0);
 
         int optval = 1;
@@ -116,7 +136,7 @@ void connect() {
                 struct sockaddr_in serverAddr, clientAddr;
                 int clientSocketFD;
 
-                initialize();
+                initializeSocket();
                 bzero((char*) &serverAddr, sizeof(serverAddr));
 
                 // Initialize members of struct sockaddr_in
@@ -129,7 +149,7 @@ void connect() {
                 if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
                         cerr << "ERROR on binding socket, trying port " << ++LISTEN_PORT << endl;
 			
-			initialize();
+			initializeSocket();
                 	bzero((char*) &serverAddr, sizeof(serverAddr));
                 	serverAddr.sin_family = AF_INET;
                 	serverAddr.sin_addr.s_addr = INADDR_ANY;
@@ -221,13 +241,7 @@ void runLoginManager() {
 
 }
 
-//////////////////////////////
-// Floor Management
-//////////////////////////////
-int channelThatHasFloor = -1;
-
-int error(const string & msg)
-{
+int error(const string & msg) {
 	cerr << msg << endl;
 	return -1;
 }
@@ -241,6 +255,7 @@ inline void calculateDominance(CLAM::Channelizer* channels[]) {
 	}
 }
 
+// Cliff: this is outdated code written by Peter. This is for volume normalization, we may or may not want this, less so if we focus on feedback-based approach
 // PGAO AMP ADJUST
 // Volume Control
 void adjustAmps(CLAM::Channelizer* channels[], CLAM::Processing* amps[]){
@@ -262,6 +277,7 @@ void adjustAmps(CLAM::Channelizer* channels[], CLAM::Processing* amps[]){
 	}
 }
 
+// Cliff: this is outdated code, written by Peter and Christine. We use bg tracks differently now
 inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]) {
 	while(true) {
 		// Nobody speaking
@@ -271,13 +287,11 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 			}
 		}
 
-
 		//Person speaking
 		for(int i = 0; i < NUMCHANNELS; i++) {
 			if(IS_START_TALKING(channels[i]->state)) {
 				CLAM::SendFloatToInControl(*(tracks[i]), "Gain", 5.0);
 			}
-			// TODO
 			else if(IS_STILL_TALKING(channels[i]->state) || IS_STOP_TALKING(channels[i]->state)) {
 				CLAM::SendFloatToInControl(*(tracks[i]), "Gain", 5.0);
 			}
@@ -296,26 +310,25 @@ void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::P
 
 	CLAM::Processing& tts = network.GetProcessing("TTS");
 
+	festival_text_to_wave(msg, wave);
+        wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
+
 	if(channel == NUMCHANNELS) {
-		CLAM::SendFloatToInControl(*(mixers[0]), "Gain 5", 1.0);
-		CLAM::SendFloatToInControl(*(mixers[1]), "Gain 5", 1.0);
-		CLAM::SendFloatToInControl(*(mixers[2]), "Gain 5", 1.0);
-		CLAM::SendFloatToInControl(*(mixers[3]), "Gain 5", 1.0);
+		CLAM::SendFloatToInControl(*(mixers[0]), TTS_GAIN_PORT, 1.0);
+		CLAM::SendFloatToInControl(*(mixers[1]), TTS_GAIN_PORT, 1.0);
+		CLAM::SendFloatToInControl(*(mixers[2]), TTS_GAIN_PORT, 1.0);
+		CLAM::SendFloatToInControl(*(mixers[3]), TTS_GAIN_PORT, 1.0);
 	}
 	else {
 		for(int i = 0; i < NUMCHANNELS; i++) {
 			if(i == channel) {
-				//cerr << "enabling channel " << i << "'s tts" << endl;
-				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 5", 1.0);
+				CLAM::SendFloatToInControl(*(mixers[i]), TTS_GAIN_PORT, 1.0);
 			}
 			else {
-				//cerr << "muting channel " << i << "'s tts" << endl;
-				CLAM::SendFloatToInControl(*(mixers[i]), "Gain 5", 0.0);
+				CLAM::SendFloatToInControl(*(mixers[i]), TTS_GAIN_PORT, 0.0);
 			}
 		}
 	}
-	festival_text_to_wave(msg, wave);
-        wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 	CLAM::SendFloatToInControl(tts, "Seek", 0.0);
 }
 
@@ -323,9 +336,24 @@ void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::P
 // Stops beeping after 3 seconds and starts all over again
 inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 
+	int channelToAlert = -1;
+	int lowestActivityLevel = 100;
+
+	gettimeofday(&_currTime, 0x0);
+	channels[channelThatHasFloor]->timeval_subtract(&_dormancyIntervalHolder, &_currTime, &_dormancyInterval);
+	double diff = (double)_dormancyIntervalHolder.tv_sec + (double)0.001*_dormancyIntervalHolder.tv_usec/1000;
+	if(diff >= DORMANCY_INTERVAL) {
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			if((channels[i]->totalActivityLevel <= DORMANCY_PERCENTAGE) && (channels[i]->totalActivityLevel < lowestActivityLevel) && (channels[i]->totalActivityLevel != 0) && (IS_NOT_TALKING(channels[i]->state))) {
+				channelToAlert = i;
+			}
+		}
+		textToSpeech("You haven't spoken in a while, why don't you speak up?", channelToAlert, channels, mixers);
+		gettimeofday(&_dormancyInterval, 0x0);
+	}
+
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
-			//cerr << "Sending an alert to channel " << i << endl;
                         textToSpeech("You've been speaking for a long time, why don't you let others have a chance?", i, channels, mixers);
 			channels[i]->isGonnaGetBeeped = false;
                 }
@@ -413,7 +441,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		}
 
 		// Case 2.2: 1 guy talking and holding the floor, 1 or more guys interrupt him: BARGE IN
-		// 	If there is an overlap for longer than overlapLength, mark everyone who does not 
+		// 	If there is an overlap for longer than OVERLAP_LENGTH, mark everyone who does not 
 		// 	have the floor and is talking; whoever is marked will get beeped
 		else if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 != numSpeakers)) {
 			//cerr << "BARGE IN! " << endl;
@@ -440,29 +468,60 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			channels[channelThatHasFloor]->timeval_subtract(&_beepTimeDiff, &_currTime, &_overlapStartTime);
 			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
 			currOverlapLength = diffTime;
-			if(currOverlapLength >= overlapLength) {
+			if(currOverlapLength >= OVERLAP_LENGTH) {
 				cerr << "overlapped for more than 2 sec" << endl;
 				
 				// Mark everyone who is talking that doesn't have the floor
 				for (int i = 0; i < NUMCHANNELS; i++) {
-					//if((i == channelThatHasFloor) && (IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction))) {
 					// Dominant Case
 					if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
 						cerr <<"inside!" << endl;
 						channels[i]->isGonnaGetBeeped = true;
-						//cerr <<"inside!" << endl;
-						//adjustAlerts(channels, mixers);
 					}
 				}
 
 				
 
 				currOverlapLength = 0.0;
-				isOverlapping = false;	// TODO: may not be a good var name
+				isOverlapping = false;	// may not be a good var name
 			}
 		}
 		else if (0 == numSpeakers) {
 			channelThatHasFloor = -1;
+
+			for(int i = 0; i < NUMCHANNELS; i++) {
+				if(IS_STOP_TALKING(channels[i]->state)) {
+
+					//Turn everyone's BG channel on
+					CLAM::SendFloatToInControl(*(mixers[0]), BG_GAIN_PORT, 1.0);
+					CLAM::SendFloatToInControl(*(mixers[1]), BG_GAIN_PORT, 1.0);
+					CLAM::SendFloatToInControl(*(mixers[2]), BG_GAIN_PORT, 1.0);
+					CLAM::SendFloatToInControl(*(mixers[3]), BG_GAIN_PORT, 1.0);
+
+					//cerr << "Channel " << channels[i]->channelNum << " just stopped talking" << endl;
+
+					string track;
+					if(i == 0)
+						track = "Track";
+					else if(i == 1) {
+						track = "Track_1";
+					}
+					else if(i == 2) {
+						track = "Track_2";
+					}
+					else if(i == 3) {
+						track = "Track_3";
+					}
+					
+        				CLAM::Processing& targetTrack = network.GetProcessing(track);
+        				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
+
+					//TODO
+					//flush(cerr);
+					//cerr << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
+					//flush(cerr);//TODO
+				}
+			}
 		}
 	}
 
@@ -473,16 +532,16 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	string notifyMsg = "";
 	
 	ofstream dataFile;
-	//dataFile.open("multiPartySpeechData.xml");
-	//cerr << "Writing start tag!\n";
-	//dataFile << "<MultiPartySpeech>\n";
 	
+	// Calculates the activity level for each channel
 	calculateDominance(channels);
 
+	// Send out alerts to dominant channels
 	adjustAlerts(channels, mixers);
 
 	updateFloorActions(channels);
 
+	// Figure out if we have any overlaps or barge-ins
 	notifyMsg = updateFloorState(channels, mixers);
 
 	//dataFile << "</MultiPartySpeech>\n";
@@ -624,8 +683,14 @@ int main( int argc, char** argv )
 		mixers[2] = & mixer3;
 		mixers[3] = & mixer4;
 
+		CLAM::SendFloatToInControl(*(mixers[0]), BG_GAIN_PORT, 0.0);
+		CLAM::SendFloatToInControl(*(mixers[1]), BG_GAIN_PORT, 0.0);
+		CLAM::SendFloatToInControl(*(mixers[2]), BG_GAIN_PORT, 0.0);
+		CLAM::SendFloatToInControl(*(mixers[3]), BG_GAIN_PORT, 0.0);
+
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
+		gettimeofday(&_dormancyInterval, 0x0);
 
 		runLoginManager();
 
@@ -635,47 +700,12 @@ int main( int argc, char** argv )
 		}	
 */
 
-                //textToSpeech("You've been speaking for a long time, why don't you let others have a chance?", i, channels, mixers);
-		//Festival TTS
-		//EST_Wave wave;
-	
    		int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;
 
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
-
-    		// Say simple file
-    		//festival_say_file("/etc/motd");
-
-    		//festival_eval_command("(voice_ked_diphone)");
-    		// Say some text;
-		//char * s = "hello world";
-    		//worked = festival_say_text(s);
-		//std::cout << worked << "---***Done***\n";
-
-    		// Convert to a waveform
-    		//festival_text_to_wave("hello goodbye cliff apple birds apple zoo zebra donkey",wave);
-	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
-
-    		// festival_say_file puts the system in async mode so we better
-   	        // wait for the spooler to reach the last waveform before exiting
-    		// This isn't necessary if only festival_say_text is being used (and
-    		// your own wave playing stuff)
-    		//festival_wait_for_spooler();
-
-		//CLAM::Processing& tts = network.GetProcessing("TTS");
-		//CLAM::SendFloatToInControl(tts, "Seek", 0.0);
-    		
-		//sleep(2);
-
-    		//festival_text_to_wave("RAHUL RAHUL RAHUL",wave);
-	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
-		//CLAM::SendFloatToInControl(tts, "Seek", 0.0);
-
-		//festival_text_to_wave("hello",wave);
-	    	//wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
