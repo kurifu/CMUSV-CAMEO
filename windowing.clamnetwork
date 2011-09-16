@@ -44,30 +44,30 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="AudioAmplifier" position="306,297" size="159,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier" position="306,272" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+    <InitGain>0.3</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_1" position="298,346" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_1" position="296,329" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+    <InitGain>0.3</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_2" position="297,389" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_2" position="297,388" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+    <InitGain>0.3</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_3" position="297,436" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_3" position="305,451" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+    <InitGain>0.2</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
@@ -124,7 +124,7 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="Seek_1" position="16,108" size="191,78" type="OutControlSender">
+  <processing id="Seek_1" position="-5,120" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>0.5</Default>
     <Max>1</Max>
@@ -133,7 +133,7 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="Seek_2" position="55,306" size="191,78" type="OutControlSender">
+  <processing id="Seek_2" position="34,326" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>0.5</Default>
     <Max>1</Max>
@@ -142,7 +142,7 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="Seek_3" position="43,494" size="191,78" type="OutControlSender">
+  <processing id="Seek_3" position="14,511" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>0.5</Default>
     <Max>1</Max>
@@ -151,7 +151,7 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="Seek_4" position="80,681" size="191,78" type="OutControlSender">
+  <processing id="Seek_4" position="53,695" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>0.5</Default>
     <Max>1</Max>
@@ -178,19 +178,19 @@ p, li { white-space: pre-wrap; }
   </processing>
 
   <processing id="Track_1" position="33,405" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/vibraphones.wav</SourceFile>
-    <SelectedChannel>0</SelectedChannel>
-    <Loop>0</Loop>
-  </processing>
-
-  <processing id="Track_2" position="14,592" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/g-piano2.wav</SourceFile>
-    <SelectedChannel>0</SelectedChannel>
-    <Loop>0</Loop>
-  </processing>
-
-  <processing id="Track_3" position="55,776" size="222,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/tabla.wav</SourceFile>
+    <SelectedChannel>0</SelectedChannel>
+    <Loop>0</Loop>
+  </processing>
+
+  <processing id="Track_2" position="13,592" size="222,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/staple-03.wav</SourceFile>
+    <SelectedChannel>0</SelectedChannel>
+    <Loop>0</Loop>
+  </processing>
+
+  <processing id="Track_3" position="55,774" size="222,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/staple-03.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>

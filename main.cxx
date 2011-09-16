@@ -56,16 +56,16 @@ int channelThatHasFloor = -1;
 const static double DOMINANCE_THRESHOLD = 50;
 
 // Number of seconds an overlap can occur before we take action
-const static double OVERLAP_LENGTH = 2.0;
+const static double OVERLAP_LENGTH = .5;
 
 // Maximum number of channels we can support, as determined by the CLAM network layout
 const int NUMCHANNELS = 4;
 
 // Maximum percentage of activity a channel needs to achieve to be considered dormant
-const static double DORMANCY_PERCENTAGE = 10;
+const static double DORMANCY_PERCENTAGE = 30;
 
 // Number of seconds before we encourage the most dormant participant to speak up
-const static double DORMANCY_INTERVAL = 100;
+const static double DORMANCY_INTERVAL = 60;
 
 double currOverlapLength = 0;
 bool isOverlapping = false;
@@ -96,7 +96,7 @@ inline void initializeSocket() {
         int optval = 1;
         setsockopt(mySocketFD, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
         if(mySocketFD < 0) {
-                cerr << "ERROR opening socket on port " << LISTEN_PORT << endl;
+                cout << "ERROR opening socket on port " << LISTEN_PORT << endl;
                 return;
         }
 }
@@ -120,7 +120,7 @@ char* getSocketPeerIp(int sock) {
                 ip = inet_ntoa( ((struct sockaddr_in *) sa)->sin_addr);
         }
         else {
-                cerr << "IPV6 problem?" << endl;
+                cout << "IPV6 problem?" << endl;
         }
         return ip;
 }
@@ -132,6 +132,7 @@ char* getSocketPeerIp(int sock) {
 //void* connect(void* ptr) {
 void connect() {
         while(1) {
+		cout << "* connect while loop start" << endl;
                 socklen_t clientAddrLen;
                 struct sockaddr_in serverAddr, clientAddr;
                 int clientSocketFD;
@@ -147,38 +148,39 @@ void connect() {
                 serverAddr.sin_port = htons(LISTEN_PORT);
 
                 if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
-                        cerr << "ERROR on binding socket, trying port " << ++LISTEN_PORT << endl;
+                        cout << "Still doesn't work on port " << LISTEN_PORT << endl;
+			return;
 			
-			initializeSocket();
+/*			initializeSocket();
                 	bzero((char*) &serverAddr, sizeof(serverAddr));
                 	serverAddr.sin_family = AF_INET;
                 	serverAddr.sin_addr.s_addr = INADDR_ANY;
                 	serverAddr.sin_port = htons(LISTEN_PORT);
                 	
 			if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
-				cerr << "New port doesn't work either...??? " << endl;
+				cout << "New port doesn't work either...??? " << endl;
 				return;
 			}
-                }
+ */             }
 
-                cerr << "Waiting for incoming client... " << endl;
-                flush(cerr);
+                cout << "Waiting for incoming client... " << endl;
+                flush(cout);
                 // 2nd arg: size of backlog queue, 5 for now, really only need 1
                 listen(mySocketFD, 5);
                 clientAddrLen = sizeof(clientAddr);
 
                 clientSocketFD = accept(mySocketFD, (struct sockaddr*) &clientAddr, &clientAddrLen);
-                cerr << "\t... connected!" << endl;
+                cout << "\t... connected!" << endl;
                 if(clientSocketFD < 0) {
-                        cerr << "ERROR on accepting connection!" << endl;
-                        pthread_exit(0);
+                        cout << "ERROR on accepting connection, trying again..." << endl;
+                        //pthread_exit(0);
                 }
-
-                char* ip = getSocketPeerIp(clientSocketFD);
-		//cerr << "Connected ip is " << ip << endl;
-		//flush(cerr);
+		else {
+	                char* ip = getSocketPeerIp(clientSocketFD);
+		//cout << "Connected ip is " << ip << endl;
+		//flush(cout);
                 //if(ip != NULL) {
-                        //cerr << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
+                        //cout << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
                         CURRNUMCHANNELS++;
                         string command = "jack_netsource -H " + (string)ip + " &";
                         system(command.c_str());
@@ -188,7 +190,7 @@ void connect() {
 			//cout << "curr num channels is " << CURRNUMCHANNELS << endl;
 		//flush(cout);
 			if(CURRNUMCHANNELS == 1) {
-		//		cout << "Hooking up 2nd channel with ip " << ip << endl;
+				cout << "Hooking up 2nd channel with ip " << ip << endl;
 		//flush(cout);
 				jack_connect(jackClient, "netjack:capture_1", "client1:AudioSource_2");
 				jack_connect(jackClient, "netjack:capture_2", "client1:AudioSource_2");
@@ -196,14 +198,14 @@ void connect() {
 				jack_connect(jackClient, "client1:AudioSink_2", "netjack:playback_2");
 			}
 			else if(CURRNUMCHANNELS == 2) {
-				cerr << "Hooking up 3rd channel with ip " << ip << endl;
+				cout << "Hooking up 3rd channel with ip " << ip << endl;
 				jack_connect(jackClient, "netjack-01:capture_1", "client1:AudioSource_3");
 				jack_connect(jackClient, "netjack-01:capture_2", "client1:AudioSource_3");
 				jack_connect(jackClient, "client1:AudioSink_3", "netjack-01:playback_1");
 				jack_connect(jackClient, "client1:AudioSink_3", "netjack-01:playback_2");
 			}
 			else if(CURRNUMCHANNELS == 3) {
-				cerr << "Hooking up 4th channel with ip " << ip << endl;
+				cout << "Hooking up 4th channel with ip " << ip << endl;
 				jack_connect(jackClient, "netjack-02:capture_1", "client1:AudioSource_4");
 				jack_connect(jackClient, "netjack-02:capture_2", "client1:AudioSource_4");
 				jack_connect(jackClient, "client1:AudioSink_4", "netjack-02:playback_1");
@@ -211,13 +213,15 @@ void connect() {
 			}
                 //}
                /* else {
-                        cerr << "Error getting IP!" << endl;
+                        cout << "Error getting IP!" << endl;
                 }*/
 
                 close(clientSocketFD);
                 close(mySocketFD);
 		//pthread_exit(0);
         }
+		LISTEN_PORT++;
+	}
 }
 
 /**
@@ -228,21 +232,21 @@ void runLoginManager() {
         char* dummyMsg = "return msg?";
         int retval_connect_supervisor;
 
-        cerr << "Initializing Login Manager..." << endl;
+        cout << "Initializing Login Manager..." << endl;
         retval_connect_supervisor = pthread_create(&thread_connect, NULL, connect, (void*) dummyMsg);
         //pthread_join(thread_connect, NULL);
-        cerr << "LoginManager started successfully." << endl;
+        cout << "LoginManager started successfully." << endl;
 */
 	pid_t pID = fork();
 	if(pID == 0) {
-		cerr << "Login Manager Process running" << endl;
+		cout << "Login Manager Process running" << endl;
 		connect();	
 	}
 
 }
 
 int error(const string & msg) {
-	cerr << msg << endl;
+	cout << msg << endl;
 	return -1;
 }
 
@@ -348,6 +352,8 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 				channelToAlert = i;
 			}
 		}
+		cout << "before dormancy" << endl;
+		flush(cout);
 		textToSpeech("You haven't spoken in a while, why don't you speak up?", channelToAlert, channels, mixers);
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
@@ -387,7 +393,7 @@ inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 
 
 inline void giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
-	//cerr << "giveFloorToLeastDominantGuy" << endl;
+	//cout << "giveFloorToLeastDominantGuy" << endl;
 	short channelThatIsLeastDominant = channelThatHasFloor;
 	ostringstream oss;
 
@@ -412,7 +418,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	// Case 1: No one has floor, only 1 person talking
 	// 	   Figure out who to give it to
 	if(FLOOR_FREE) {
-		//cerr << "Floor is free!" << endl;
+		//cout << "Floor is free!" << endl;
 		int numWhoWantFloor = 0;
 		short channelWhoWantsFloor = -1;
 		for(int i = 0; i < NUMCHANNELS; i++) {
@@ -425,7 +431,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		if(numWhoWantFloor == 1) {
 			channelThatHasFloor = channelWhoWantsFloor;
 			oss << (channelThatHasFloor+1);
-			outputMsg = "Giving Floor to Channel " + oss.str() + "\n";
+			outputMsg = "Giving Floor to Channel " + oss.str();
 			isOverlapping = false;
 		}
 		else {
@@ -434,7 +440,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	}
 	// Case 2: Someone has floor; check everyone else's status before updating anything
 	else {
-		//cerr << "Floor is NOT free!" << endl;
+		//cout << "Floor is NOT free!" << endl;
 		// Case 2.1: Only 1 guy talking and holding the floor, most common case, let him continue
 		if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 == numSpeakers)) {
 			isOverlapping = false;
@@ -444,7 +450,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		// 	If there is an overlap for longer than OVERLAP_LENGTH, mark everyone who does not 
 		// 	have the floor and is talking; whoever is marked will get beeped
 		else if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 != numSpeakers)) {
-			//cerr << "BARGE IN! " << endl;
+			//cout << "BARGE IN! " << endl;
 			for (int i = 0; i < NUMCHANNELS; i++) {
 				if((i != channelThatHasFloor) && (IS_HOLD_FLOOR(channels[i]->floorAction))) {
 					// Only log if we haven't logged yet; this gets reset automatically by the Channelizer
@@ -469,13 +475,13 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
 			currOverlapLength = diffTime;
 			if(currOverlapLength >= OVERLAP_LENGTH) {
-				cerr << "overlapped for more than 2 sec" << endl;
+				cout << "overlapped for more than 2 sec" << endl;
 				
 				// Mark everyone who is talking that doesn't have the floor
 				for (int i = 0; i < NUMCHANNELS; i++) {
 					// Dominant Case
 					if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
-						cerr <<"inside!" << endl;
+						cout <<"inside!" << endl;
 						channels[i]->isGonnaGetBeeped = true;
 					}
 				}
@@ -498,7 +504,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					CLAM::SendFloatToInControl(*(mixers[2]), BG_GAIN_PORT, 1.0);
 					CLAM::SendFloatToInControl(*(mixers[3]), BG_GAIN_PORT, 1.0);
 
-					//cerr << "Channel " << channels[i]->channelNum << " just stopped talking" << endl;
+					//cout << "Channel " << channels[i]->channelNum << " just stopped talking" << endl;
 
 					string track;
 					if(i == 0)
@@ -517,9 +523,9 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
         				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
 
 					//TODO
-					//flush(cerr);
-					//cerr << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
-					//flush(cerr);//TODO
+					//flush(cout);
+					//cout << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
+					//flush(cout);//TODO
 				}
 			}
 		}
@@ -548,7 +554,7 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	//dataFile.close();
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
-		cerr << notifyMsg << endl;
+		cout << notifyMsg << endl;
 	}
 	return notifyMsg;
 }
@@ -695,7 +701,7 @@ int main( int argc, char** argv )
 		runLoginManager();
 
 /*		while(CURRNUMCHANNELS == 0) {
-			cerr << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
+			cout << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
 			sleep(5);
 		}	
 */
@@ -725,7 +731,7 @@ int main( int argc, char** argv )
 		exit(-1);
 	}
 	catch( exception& e ) {
-		cerr << e.what() << endl;
+		cout << e.what() << endl;
 		exit(-1);		
 	}
 
