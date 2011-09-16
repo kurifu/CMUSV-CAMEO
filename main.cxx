@@ -574,10 +574,15 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 3) Concept of Floor: Untill someone else starts speaking, floor belongs to last speaker
 */
 
-int main( int argc, char** argv )
-{	
-	try
-	{
+int main( int argc, char* argv[] ) {	
+	cout << "Welcome to the Supervisor Conference Call system. All log files are saved in ./logs" << endl;
+
+	if(argc < 2) {
+		perror("Please specify file name for the logfile, i.e. './MyProgram test1.log', or './MyProgram 20110815_test1.log'\n");
+		exit(-1);
+	}
+
+	try {
 
 /*******************************************************************/
 /*-----------------------------SETUP-------------------------------*/
@@ -631,7 +636,6 @@ int main( int argc, char** argv )
 		}
 */
 		CLAM::Processing& generator = network.GetProcessing("Generator");
-		//CLAM::SendFloatToInControl(generator, "Amplitude", 1.0);
 
 		CLAM::Processing& mic = network.GetProcessing("AudioSource");
 		CLAM::Channelizer& myp1 = (CLAM::Channelizer&) network.GetProcessing("Channelizer");
@@ -648,6 +652,19 @@ int main( int argc, char** argv )
 		myp2.channelNum = 2;
 		myp3.channelNum = 3;
 		myp4.channelNum = 4;
+
+		// Data Logging Stuff
+		string filePath = argv[1];
+		filePath = "/home/rahul/Multiparty/Projects/multipartyspeech/logs/" + filePath;
+		myp1.setFileName(filePath);
+		myp1.setFileName(filePath);
+		myp1.setFileName(filePath);
+		myp1.setFileName(filePath);
+		ofstream logFile;
+		logFile.open(filePath.c_str(), ios::app);
+		logFile << "New Test Started At " << myp1.getDate() << "\n";
+		logFile << "CurrTime\tChannelName\tSpeaking Length\tTSL\tTSLNoU\tTSI\tTSUI\tDom%\tIsDominant\tTotalSessionTime\n";
+		logFile.close();
 
 		int winSize = mic.GetOutPort("1").GetSize();
 		myp1.GetInPort("Input").SetSize(winSize);	

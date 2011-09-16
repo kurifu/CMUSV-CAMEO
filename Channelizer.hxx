@@ -9,6 +9,7 @@
 #include <bitset>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 // XMLRPC Libraries 
 #include <cassert>
@@ -66,6 +67,7 @@ class Channelizer : public CLAM::Processing
 
 public:
 	int channelNum;
+	string logFileName;
 	double logEnergy;
 	double diffTime, totalSpeakingLength, sessionTime, totalSpeakingLengthNoUtterances, totalActivityLevel;
 	unsigned int totalSpeakingTurns, totalSpeakingInterrupts, totalSpeakingSuccessfulInterrupts, totalSpeakingUnsuccessfulInterrupts;
@@ -210,7 +212,7 @@ public:
 			
 			printSpeakerStats();
 			sendSpeakerStats();			
-			//writeSpeakerStats();
+			writeSpeakerStats();
 			//writeVolStats();
 			
 			diffTime = 0.0;
@@ -297,6 +299,10 @@ public:
 		return _name;
 	}
 
+	void setFileName(string name) {
+		logFileName = name;
+	}
+
 	//cchien
 	void writeVolStats() {
 		ofstream volFile;
@@ -359,6 +365,29 @@ public:
                         cout << "Client threw unexpected error." << endl;
                 }
         }
+
+	inline void writeSpeakerStats() {
+		ofstream logFile;
+		logFile.open(logFileName.c_str(), ios::app);//, ios::app);
+
+		// CurrTime, ChannelName, Speaking Length, TSL, TSLNoU, TSI, TSUI, Dom%, IsDominant, TotalSessionTime
+		logFile << getDate() << "\t" <<  _name << "\t" << diffTime << "\t" << totalSpeakingLength << "\t" << totalSpeakingLengthNoUtterances << "\t" << totalSpeakingInterrupts << "\t" << totalSpeakingUnsuccessfulInterrupts << "\t" << totalActivityLevel << "\t";
+	       (isDominant) ? logFile << "YES" : logFile << "NO";
+		logFile << "\t" << sessionTime << "\n";
+		logFile.close();
+	}
+
+	string getDate() {
+		time_t rawtime;
+		struct tm* timeinfo;
+		int year, month, day;
+		time(&rawtime);
+		timeinfo = localtime(&rawtime);
+		mktime(timeinfo);
+		stringstream currTime, fileName;
+		currTime << timeinfo->tm_hour << ":" << timeinfo->tm_min << ":" << timeinfo->tm_sec << "_" << timeinfo->tm_mon << "_" << timeinfo->tm_mday << "_" << (timeinfo->tm_year+1900);
+		return currTime.str();
+	}
 
 };
 
