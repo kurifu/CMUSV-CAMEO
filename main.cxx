@@ -46,6 +46,8 @@ int prevChannelThatHasFloor = -1;
 int numTimesFloorChanges = 0;
 string logFilePath;
 
+static int SUPERVISOR_ON = 0;
+
 #define IS_NOT_TALKING(x)	(x & NOT_TALKING)
 #define IS_START_TALKING(x)	(x & START_TALKING)
 #define IS_STILL_TALKING(x)	(x & STILL_TALKING)
@@ -105,6 +107,27 @@ inline void initializeSocket() {
         }
 }
 
+int checkIfOn() {
+        ifstream inputFile;
+        inputFile.open("./config.txt");
+        int data;
+        inputFile >> data;
+
+        if(SUPERVISOR_ON != data) {
+                cout << "Supervisor is now ";
+                (data) ? cout << "on!" << endl : cout << "off!" << endl;
+
+                ofstream logFile;
+                logFile.open(logFilePath.c_str(), ios::app);
+                logFile << "Supervisor turned OFF " << endl;
+                logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#Spoken\t#Notified\tTotalTime\n";
+                logFile.close();
+                SUPERVISOR_ON = data;
+        }
+        inputFile.close();
+        return SUPERVISOR_ON;
+}
+
 /**
 * Finds the IP address of the client connected at the provided socket file descriptor
 * Returns: char* containing ip, or NULL
@@ -133,10 +156,10 @@ char* getSocketPeerIp(int sock) {
 * Function that handles incoming connections at LISTEN_PORT by blocking
 * This function runs in a separate thread called by runLoginManager
 */
-//void* connect(void* ptr) {
-void connect() {
-        while(1) {
-		cout << "* connect while loop start" << endl;
+void* connect(void* portno) {
+//void connect(int portno) {
+        //while(1) {
+		//cout << "* Connect thread listening on port " << (int)portno << endl;
                 socklen_t clientAddrLen;
                 struct sockaddr_in serverAddr, clientAddr;
                 int clientSocketFD;
@@ -149,25 +172,16 @@ void connect() {
                 // need to convert port number to network byte order via htons
                 serverAddr.sin_family = AF_INET;
                 serverAddr.sin_addr.s_addr = INADDR_ANY;
-                serverAddr.sin_port = htons(LISTEN_PORT);
+                //serverAddr.sin_port = htons(LISTEN_PORT);
+                serverAddr.sin_port = htons((int)portno);
 
                 if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
-                        cout << "Still doesn't work on port " << LISTEN_PORT << endl;
-			return;
-			
-/*			initializeSocket();
-                	bzero((char*) &serverAddr, sizeof(serverAddr));
-                	serverAddr.sin_family = AF_INET;
-                	serverAddr.sin_addr.s_addr = INADDR_ANY;
-                	serverAddr.sin_port = htons(LISTEN_PORT);
-                	
-			if(bind(mySocketFD, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) < 0) {
-				cout << "New port doesn't work either...??? " << endl;
-				return;
-			}
- */             }
+                        cout << "Still doesn't work on port " << portno << endl;
+			//return;
+			pthread_exit(NULL);
+		}
 
-                cout << "Waiting for incoming client... " << endl;
+                cout << "Waiting for incoming client on port " << (int)portno << endl;
                 flush(cout);
                 // 2nd arg: size of backlog queue, 5 for now, really only need 1
                 listen(mySocketFD, 5);
@@ -176,26 +190,20 @@ void connect() {
                 clientSocketFD = accept(mySocketFD, (struct sockaddr*) &clientAddr, &clientAddrLen);
                 cout << "\t... connected!" << endl;
                 if(clientSocketFD < 0) {
-                        cout << "ERROR on accepting connection, trying again..." << endl;
-                        //pthread_exit(0);
+                        cout << "ERROR on accepting connection, returning..." << endl;
+			//return;
+			pthread_exit(NULL);
                 }
 		else {
 	                char* ip = getSocketPeerIp(clientSocketFD);
-		//cout << "Connected ip is " << ip << endl;
-		//flush(cout);
-                //if(ip != NULL) {
-                        //cout << "Got it, gonna execute 'jack_netsource -H " << ip << endl;
                         CURRNUMCHANNELS++;
                         string command = "jack_netsource -H " + (string)ip + " &";
                         system(command.c_str());
 
 			sleep(1);
 
-			//cout << "curr num channels is " << CURRNUMCHANNELS << endl;
-		//flush(cout);
 			if(CURRNUMCHANNELS == 1) {
 				cout << "Hooking up 2nd channel with ip " << ip << endl;
-		//flush(cout);
 				jack_connect(jackClient, "netjack:capture_1", "client1:AudioSource_2");
 				jack_connect(jackClient, "netjack:capture_2", "client1:AudioSource_2");
 				jack_connect(jackClient, "client1:AudioSink_2", "netjack:playback_1");
@@ -215,38 +223,67 @@ void connect() {
 				jack_connect(jackClient, "client1:AudioSink_4", "netjack-02:playback_1");
 				jack_connect(jackClient, "client1:AudioSink_4", "netjack-02:playback_2");
 			}
-                //}
-               /* else {
-                        cout << "Error getting IP!" << endl;
-                }*/
 
                 close(clientSocketFD);
                 close(mySocketFD);
-		//pthread_exit(0);
         }
-		LISTEN_PORT++;
-	}
+	//LISTEN_PORT++;
 }
 
 /**
 * Spawns off a thread to run the 'connect' function which handles incoming socket connecitons
 */
 void runLoginManager() {
-/*        pthread_t thread_connect;
+        pthread_t connect1, connect2, connect3, connect4;
         char* dummyMsg = "return msg?";
-        int retval_connect_supervisor;
+	int port1 = 4444;
+	int port2 = 4445;
+	int port3 = 4446;
+	int port4 = 4447;
 
-        cout << "Initializing Login Manager..." << endl;
-        retval_connect_supervisor = pthread_create(&thread_connect, NULL, connect, (void*) dummyMsg);
+        int retval_connect1, retval_connect2, retval_connect3, retval_connect4;
+
+        cout << "Initializing Connect 1..." << endl;
+        retval_connect1 = pthread_create(&connect1, NULL, connect, (void*)port1);
+        cout << "Initializing Connect 2..." << endl;
+        retval_connect2 = pthread_create(&connect2, NULL, connect, (void*)port2);
+        cout << "Initializing Connect 3..." << endl;
+        retval_connect3 = pthread_create(&connect3, NULL, connect, (void*)port3);
+        cout << "Initializing Connect 4..." << endl;
+        retval_connect4 = pthread_create(&connect4, NULL, connect, (void*)port4);
         //pthread_join(thread_connect, NULL);
-        cout << "LoginManager started successfully." << endl;
-*/
-	pid_t pID = fork();
-	if(pID == 0) {
-		cout << "Login Manager Process running" << endl;
-		connect();	
-	}
 
+
+/*	pid_t pID1 = fork();
+	pid_t pID2 = fork();
+	pid_t pID3 = fork();
+	pid_t pID4 = fork();
+	cout << "pid1 is " << pID1 << ", pid2 is " << pID2 << ", pid3 is " << pID3 << ", pid4 is " << pID4 << endl;
+	if(pID1 == 0) {
+		cout << "Waiting for 1st Connection on port 4444" << endl;
+		connect(4444);	
+		cout << "** got a connection on port 4444, exiting." << endl;
+		_Exit(1);
+	}
+	if(pID2 == 0) {
+		cout << "Waiting for 2nd Connection on port 4445" << endl;
+		connect(4445);	
+		cout << "** got a connection on port 4445, exiting." << endl;
+		_Exit(1);
+	}
+	if(pID3 == 0) {
+		cout << "Waiting for 3rd Connection on port 4446" << endl;
+		connect(4446);	
+		cout << "** got a connection on port 4446, exiting." << endl;
+		_Exit(1);
+	}
+	if(pID4 == 0) {
+		cout << "Waiting for 1st Connection on port 4447" << endl;
+		connect(4447);	
+		cout << "** got a connection on port 4447, exiting." << endl;
+		_Exit(1);
+	}
+*/
 }
 
 int error(const string & msg) {
@@ -358,13 +395,13 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 		}
 		cout << "before dormancy" << endl;
 		flush(cout);
-		textToSpeech("You haven't spoken in a while, why don't you speak up?", channelToAlert, channels, mixers);
+		textToSpeech("Something to say?", channelToAlert, channels, mixers);
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
 
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
-                        textToSpeech("You've been speaking for a long time, why don't you let others have a chance?", i, channels, mixers);
+                        textToSpeech("Others?!", i, channels, mixers);
 			channels[i]->isGonnaGetBeeped = false;
                 }
         }
@@ -394,6 +431,7 @@ inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 	}
 	return speakers;
 }
+
 
 
 inline void giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
@@ -432,7 +470,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			}
 		}
 
-// TODO
 		if(numWhoWantFloor == 1) {
 			channelThatHasFloor = channelWhoWantsFloor;
 			if(prevChannelThatHasFloor != channelThatHasFloor) {
@@ -445,10 +482,10 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			outputMsg = "Giving Floor to Channel " + oss.str();
 			isOverlapping = false;
 
-	                ofstream logFile;
-	                logFile.open(logFilePath.c_str(), ios::app);
-	                logFile << "\tFloor Changed " << numTimesFloorChanges << " times\n";
-	                logFile.close();
+	                //ofstream logFile;
+	                //logFile.open(logFilePath.c_str(), ios::app);
+	                //logFile << "\tFloor Changed " << numTimesFloorChanges << " times\n";
+	                //logFile.close();
 
 		}
 		else {
@@ -503,46 +540,49 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					}
 				}
 
-				
-
 				currOverlapLength = 0.0;
 				isOverlapping = false;	// may not be a good var name
 			}
 		}
+		// When someone's done talking, play their BG track
 		else if (0 == numSpeakers) {
 			channelThatHasFloor = -1;
 
-			for(int i = 0; i < NUMCHANNELS; i++) {
-				if(IS_STOP_TALKING(channels[i]->state)) {
+			//if(checkIfOn()) {
+			//TODO
+			if(SUPERVISOR_ON) {
+				for(int i = 0; i < NUMCHANNELS; i++) {
+					if(IS_STOP_TALKING(channels[i]->state)) {
+	
+						//Turn everyone's BG channel on
+						CLAM::SendFloatToInControl(*(mixers[0]), BG_GAIN_PORT, 1.0);
+						CLAM::SendFloatToInControl(*(mixers[1]), BG_GAIN_PORT, 1.0);
+						CLAM::SendFloatToInControl(*(mixers[2]), BG_GAIN_PORT, 1.0);
+						CLAM::SendFloatToInControl(*(mixers[3]), BG_GAIN_PORT, 1.0);
 
-					//Turn everyone's BG channel on
-					CLAM::SendFloatToInControl(*(mixers[0]), BG_GAIN_PORT, 1.0);
-					CLAM::SendFloatToInControl(*(mixers[1]), BG_GAIN_PORT, 1.0);
-					CLAM::SendFloatToInControl(*(mixers[2]), BG_GAIN_PORT, 1.0);
-					CLAM::SendFloatToInControl(*(mixers[3]), BG_GAIN_PORT, 1.0);
+						//cout << "Channel " << channels[i]->channelNum << " just stopped talking" << endl;
 
-					//cout << "Channel " << channels[i]->channelNum << " just stopped talking" << endl;
-
-					string track;
-					if(i == 0)
-						track = "Track";
-					else if(i == 1) {
-						track = "Track_1";
-					}
-					else if(i == 2) {
-						track = "Track_2";
-					}
-					else if(i == 3) {
-						track = "Track_3";
-					}
+						string track;
+						if(i == 0)
+							track = "Track";
+						else if(i == 1) {
+							track = "Track_1";
+						}
+						else if(i == 2) {
+							track = "Track_2";
+						}
+						else if(i == 3) {
+							track = "Track_3";
+						}
 					
-        				CLAM::Processing& targetTrack = network.GetProcessing(track);
-        				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
+	       	 				CLAM::Processing& targetTrack = network.GetProcessing(track);
+	        				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
 
-					//TODO
-					//flush(cout);
-					//cout << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
-					//flush(cout);//TODO
+						//TODO
+						//flush(cout);
+						//cout << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
+						//flush(cout);//TODO
+					}
 				}
 			}
 		}
@@ -560,7 +600,9 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	calculateDominance(channels);
 
 	// Send out alerts to dominant channels
-	adjustAlerts(channels, mixers);
+	//if(checkIfOn())
+	if(SUPERVISOR_ON)
+		adjustAlerts(channels, mixers);
 
 	updateFloorActions(channels);
 
@@ -575,7 +617,6 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	}
 	return notifyMsg;
 }
-
 
 /*******************************************************************/
 /*-----------------------SUPERVISOR STUFF--------------------------*/
@@ -673,6 +714,7 @@ int main( int argc, char* argv[] ) {
 		// Data Logging Stuff
 		string filePath = argv[1];
 		filePath = "/home/rahul/Multiparty/Projects/multipartyspeech/logs/" + filePath;
+		logFilePath = filePath;
 		myp1.setFileName(filePath);
 		myp2.setFileName(filePath);
 		myp3.setFileName(filePath);
@@ -680,7 +722,7 @@ int main( int argc, char* argv[] ) {
 		ofstream logFile;
 		logFile.open(filePath.c_str(), ios::app);
 		logFile << "New Test Started At " << myp1.getDate() << "\n";
-		logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#TakenFloor\t#Notified\tTotalTime\n";
+		logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#Spoken\t#Notified\tTotalTime\n";
 		logFile.close();
 
 		int winSize = mic.GetOutPort("1").GetSize();
@@ -753,6 +795,8 @@ int main( int argc, char* argv[] ) {
 			//cout << "before adjustAmps" << endl;
 			//adjustAmps(channels, amps);
 			//playTracks(channels, tracks);
+
+			//checkIfOn();
 		}
 		delete [] channels;
 		delete [] mixers;

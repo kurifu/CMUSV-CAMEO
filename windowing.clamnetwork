@@ -46,28 +46,28 @@ p, li { white-space: pre-wrap; }
 
   <processing id="AudioAmplifier" position="306,272" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.3</InitGain>
+    <InitGain>0.5</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_1" position="296,329" size="174,57" type="AudioAmplifier">
+  <processing id="AudioAmplifier_1" position="296,328" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.3</InitGain>
+    <InitGain>0.5</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
   <processing id="AudioAmplifier_2" position="297,388" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.3</InitGain>
+    <InitGain>0.5</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
   <processing id="AudioAmplifier_3" position="305,451" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.2</InitGain>
+    <InitGain>0.5</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
@@ -183,14 +183,14 @@ p, li { white-space: pre-wrap; }
     <Loop>0</Loop>
   </processing>
 
-  <processing id="Track_2" position="13,592" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/staple-03.wav</SourceFile>
+  <processing id="Track_2" position="14,592" size="222,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/congal.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
 
   <processing id="Track_3" position="55,774" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/staple-03.wav</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/marimba.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
