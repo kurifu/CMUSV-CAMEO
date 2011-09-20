@@ -42,6 +42,9 @@ using namespace std;
 CLAM::Network network;
 jack_client_t * jackClient;
 int channelThatHasFloor = -1;
+int prevChannelThatHasFloor = -1;
+int numTimesFloorChanges = 0;
+string logFilePath;
 
 #define IS_NOT_TALKING(x)	(x & NOT_TALKING)
 #define IS_START_TALKING(x)	(x & START_TALKING)
@@ -77,6 +80,7 @@ double diffTime = 0.0;
 * Festival *
 ***********/
 const static string TTS_GAIN_PORT = "Gain 4";
+const static double TTS_GAIN = 0.3;
 
 /********************
 * Background Tracks *
@@ -264,18 +268,17 @@ inline void calculateDominance(CLAM::Channelizer* channels[]) {
 // Volume Control
 void adjustAmps(CLAM::Channelizer* channels[], CLAM::Processing* amps[]){
 	int j=0.5;
-	while(true){
-		for(int i=0; i < NUMCHANNELS; i++){
-			if(IS_START_TALKING(channels[i]->state)||IS_STILL_TALKING(channels[i]->state)){
-	
-				while(channels[i]->logEnergy<50) {
-					j+=0.1;
-					CLAM::SendFloatToInControl(*(amps[i]), "Gain", j);
-				}
-				while(channels[i]->logEnergy>60){
-					j-=0.1;
-					CLAM::SendFloatToInControl(*(amps[i]), "Gain", j);
-				}
+	for(int i=0; i < NUMCHANNELS; i++){
+		if(IS_START_TALKING(channels[i]->state)||IS_STILL_TALKING(channels[i]->state)){
+			while(channels[i]->logEnergy<50 && (IS_START_TALKING(channels[i]->state) || (IS_STILL_TALKING(channels[i]->state)))) {
+				cout << "Increasing volume" << endl;
+				j+=0.1;
+				CLAM::SendFloatToInControl(*(amps[i]), "Gain", j);
+			}
+			while(channels[i]->logEnergy>60 && (IS_START_TALKING(channels[i]->state) || (IS_STILL_TALKING(channels[i]->state)))) {
+				cout << "Decreasing volume" << endl;
+				j-=0.1;
+				CLAM::SendFloatToInControl(*(amps[i]), "Gain", j);
 			}
 		}
 	}
@@ -318,15 +321,16 @@ void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::P
         wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
 	if(channel == NUMCHANNELS) {
-		CLAM::SendFloatToInControl(*(mixers[0]), TTS_GAIN_PORT, 1.0);
-		CLAM::SendFloatToInControl(*(mixers[1]), TTS_GAIN_PORT, 1.0);
-		CLAM::SendFloatToInControl(*(mixers[2]), TTS_GAIN_PORT, 1.0);
-		CLAM::SendFloatToInControl(*(mixers[3]), TTS_GAIN_PORT, 1.0);
+		CLAM::SendFloatToInControl(*(mixers[0]), TTS_GAIN_PORT, TTS_GAIN);
+		CLAM::SendFloatToInControl(*(mixers[1]), TTS_GAIN_PORT, TTS_GAIN);
+		CLAM::SendFloatToInControl(*(mixers[2]), TTS_GAIN_PORT, TTS_GAIN);
+		CLAM::SendFloatToInControl(*(mixers[3]), TTS_GAIN_PORT, TTS_GAIN);
 	}
 	else {
 		for(int i = 0; i < NUMCHANNELS; i++) {
 			if(i == channel) {
-				CLAM::SendFloatToInControl(*(mixers[i]), TTS_GAIN_PORT, 1.0);
+				CLAM::SendFloatToInControl(*(mixers[i]), TTS_GAIN_PORT, TTS_GAIN);
+				channels[i]->numTimesNotified++;
 			}
 			else {
 				CLAM::SendFloatToInControl(*(mixers[i]), TTS_GAIN_PORT, 0.0);
@@ -428,11 +432,24 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			}
 		}
 
+// TODO
 		if(numWhoWantFloor == 1) {
 			channelThatHasFloor = channelWhoWantsFloor;
-			oss << (channelThatHasFloor+1);
+			if(prevChannelThatHasFloor != channelThatHasFloor) {
+				numTimesFloorChanges++;
+			}
+			prevChannelThatHasFloor = channelThatHasFloor;
+
+			channels[channelThatHasFloor]->numTimesTakenFloor++;
+			oss << (channelThatHasFloor+1) << ", Floor has changed " << numTimesFloorChanges << " times";
 			outputMsg = "Giving Floor to Channel " + oss.str();
 			isOverlapping = false;
+
+	                ofstream logFile;
+	                logFile.open(logFilePath.c_str(), ios::app);
+	                logFile << "\tFloor Changed " << numTimesFloorChanges << " times\n";
+	                logFile.close();
+
 		}
 		else {
 			// More than 1 guy started at the same time; very very rare case, deal with it later
@@ -657,13 +674,13 @@ int main( int argc, char* argv[] ) {
 		string filePath = argv[1];
 		filePath = "/home/rahul/Multiparty/Projects/multipartyspeech/logs/" + filePath;
 		myp1.setFileName(filePath);
-		myp1.setFileName(filePath);
-		myp1.setFileName(filePath);
-		myp1.setFileName(filePath);
+		myp2.setFileName(filePath);
+		myp3.setFileName(filePath);
+		myp4.setFileName(filePath);
 		ofstream logFile;
 		logFile.open(filePath.c_str(), ios::app);
 		logFile << "New Test Started At " << myp1.getDate() << "\n";
-		logFile << "CurrTime\tChannelName\tSpeaking Length\tTSL\tTSLNoU\tTSI\tTSUI\tDom%\tIsDominant\tTotalSessionTime\n";
+		logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#TakenFloor\t#Notified\tTotalTime\n";
 		logFile.close();
 
 		int winSize = mic.GetOutPort("1").GetSize();
@@ -731,7 +748,9 @@ int main( int argc, char* argv[] ) {
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
 
 		while(1) {		
+			//cout << "before updateFloorStuff" << endl;
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
+			//cout << "before adjustAmps" << endl;
 			//adjustAmps(channels, amps);
 			//playTracks(channels, tracks);
 		}
