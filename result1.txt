@@ -1,0 +1,63 @@
+With
+Channel 1:
+        Dominance Percentage: 45.6479665
+        Average Speaking Length: 1.96
+Channel 2:
+        Dominance Percentage: 28.6560773
+        Average Speaking Length: 1.8
+Channel 3:
+        Dominance Percentage: 25.3822359
+        Average Speaking Length: 1.7
+
+Channel 1:
+        Dominance Percentage: 43.5934858
+        Average Speaking Length: 1.81727296
+Channel 2:
+        Dominance Percentage: 30.8605085
+        Average Speaking Length: 1.7
+Channel 3:
+        Dominance Percentage: 26.2036004
+        Average Speaking Length: 1.7
+
+Channel 1:
+        Dominance Percentage: 34.6831504
+        Average Speaking Length: 1.43441235 sec
+Channel 2:
+        Dominance Percentage: 31.0090461
+        Average Speaking Length: 1.50612597 sec
+Channel 3:
+        Dominance Percentage: 33.6624274
+        Average Speaking Length: 1.77302863 sec
+
+
+W/O
+Channel 1:
+        Dominance Percentage: 52.4877014
+        Average Speaking Length: 1.69
+Channel 2:
+        Dominance Percentage: 30.4366046
+        Average Speaking Length: 1.82
+Channel 3:
+        Dominance Percentage: 20.4727636
+        Average Speaking Length: 1.91
+
+Channel 1:
+        Dominance Percentage: 48.4842298
+        Average Speaking Length: 1.69
+Channel 2:
+        Dominance Percentage: 20.1341142
+        Average Speaking Length: 1.82
+Channel 3:
+        Dominance Percentage: 32.7892167
+        Average Speaking Length: 1.91
+
+Channel 1:
+        Dominance Percentage: 49.4752815
+        Average Speaking Length: 1.96
+Channel 2:
+        Dominance Percentage: 12.8402563
+        Average Speaking Length: 1.46
+Channel 3:
+        Dominance Percentage: 38.7114821
+        Average Speaking Length: 1.9
+

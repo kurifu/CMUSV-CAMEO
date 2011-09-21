@@ -83,7 +83,7 @@ double diffTime = 0.0;
 * Festival *
 ***********/
 const static string TTS_GAIN_PORT = "Gain 4";
-const static double TTS_GAIN = 0.3;
+const static double TTS_GAIN = 1.0;
 
 /********************
 * Background Tracks *
@@ -116,11 +116,17 @@ int checkIfOn(CLAM::Channelizer* channels[] ) {
         inputFile >> data;
 
         ofstream logFile;
-                logFile.open(logFilePath.c_str(), ios::app);
+        logFile.open(logFilePath.c_str(), ios::app);
         if(SUPERVISOR_ON != data) {
                 cout << "Supervisor is now ";
                 (data) ? cout << "on!" << endl : cout << "off!" << endl;
 
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			double avgSpkLen = channels[i]->totalSpeakingLength / channels[i]->numTimesTakenFloor;
+			logFile << endl << channels[i]->getPName() << " Dom%: " << channels[i]->totalActivityLevel << "\tAvg Speaking Length: " << avgSpkLen;
+		}
+
+		logFile << endl << endl;
                 logFile << "Supervisor turned";
 		(data) ? logFile << " ON " : logFile << " OFF " << endl;
                 logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#Spoken\t#Notified\tTotalTime\n";
@@ -130,7 +136,8 @@ int checkIfOn(CLAM::Channelizer* channels[] ) {
 			channels[i]->reset();
 		}
         }
-//TODO
+
+	// If the 2nd line in the config.txt file changes, calculate all stats up until now and 
 	inputFile >> data2;
 	if(data2.compare(LOG_NOTE)) {
 		logFile << data2 << endl;
@@ -409,13 +416,13 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 		}
 		cout << "before dormancy" << endl;
 		flush(cout);
-		textToSpeech("Something to say?", channelToAlert, channels, mixers);
+		textToSpeech("Your thoughts ?", channelToAlert, channels, mixers);
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
 
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
-                        textToSpeech("Others?!", i, channels, mixers);
+                        textToSpeech("Take turns", i, channels, mixers);
 			channels[i]->isGonnaGetBeeped = false;
                 }
         }
@@ -656,6 +663,8 @@ int main( int argc, char* argv[] ) {
 
 	try {
 
+
+
 /*******************************************************************/
 /*-----------------------------SETUP-------------------------------*/
 /*******************************************************************/
@@ -802,6 +811,22 @@ int main( int argc, char* argv[] ) {
 
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
+
+/*while(1) {
+ 	textToSpeech("Any thoughts ?", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Your thoughts ?", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Take turns", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Speak up", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Any thoughts ?", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Any ideas ?", 0, channels, mixers);
+	sleep(2);
+}*/
+
 
 		while(1) {		
 			//cout << "before updateFloorStuff" << endl;

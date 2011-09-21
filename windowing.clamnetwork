@@ -46,21 +46,21 @@ p, li { white-space: pre-wrap; }
 
   <processing id="AudioAmplifier" position="306,272" size="159,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.5</InitGain>
+    <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
   <processing id="AudioAmplifier_1" position="296,328" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.5</InitGain>
+    <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
   <processing id="AudioAmplifier_2" position="297,388" size="174,57" type="AudioAmplifier">
     <MaxGain>1</MaxGain>
-    <InitGain>0.5</InitGain>
+    <InitGain>1</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
@@ -115,7 +115,7 @@ p, li { white-space: pre-wrap; }
     <SamplingRate>16000</SamplingRate>
   </processing>
 
-  <processing id="Seek" position="392,586" size="191,78" type="OutControlSender">
+  <processing id="Seek" position="363,588" size="191,78" type="OutControlSender">
     <Min>0</Min>
     <Default>1</Default>
     <Max>1</Max>
@@ -160,7 +160,7 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="TTS" position="394,673" size="207,57" type="MonoAudioFileReader">
+  <processing id="TTS" position="364,675" size="207,57" type="MonoAudioFileReader">
     <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
@@ -171,26 +171,26 @@ p, li { white-space: pre-wrap; }
     <DefaultGains size="4">1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="Track" position="-5,204" size="207,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/click_x.wav</SourceFile>
+  <processing id="Track" position="-4,202" size="207,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones-1.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
 
-  <processing id="Track_1" position="33,405" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/tabla.wav</SourceFile>
+  <processing id="Track_1" position="34,404" size="222,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones+2.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
 
-  <processing id="Track_2" position="13,593" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/congal.wav</SourceFile>
+  <processing id="Track_2" position="15,593" size="222,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones+5.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
 
   <processing id="Track_3" position="55,773" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/marimba.wav</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/vibraphones.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
@@ -357,12 +357,7 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>TTS.Samples Read</out>
-    <in>AudioMixer.Input 4</in>
-  </port_connection>
-
-  <port_connection>
-    <out>TTS.Samples Read</out>
-    <in>AudioMixer_1.Input 4</in>
+    <in>AudioMixer_3.Input 4</in>
   </port_connection>
 
   <port_connection>
@@ -372,7 +367,12 @@ p, li { white-space: pre-wrap; }
 
   <port_connection>
     <out>TTS.Samples Read</out>
-    <in>AudioMixer_3.Input 4</in>
+    <in>AudioMixer_1.Input 4</in>
+  </port_connection>
+
+  <port_connection>
+    <out>TTS.Samples Read</out>
+    <in>AudioMixer.Input 4</in>
   </port_connection>
 
   <port_connection>
