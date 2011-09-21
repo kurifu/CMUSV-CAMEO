@@ -54,6 +54,7 @@ class Channelizer : public CLAM::Processing {
 	const static float HIGH_NOISE = 0.0;
 	const static float LOWSR = 5;
 	const static float HIGHSR = 20;
+	const static double UTTERANCE_LENGTH = 1.0;
 
 	AudioInPort _input;
 	double _max;
@@ -67,28 +68,32 @@ class Channelizer : public CLAM::Processing {
 	unsigned windowSNS; //speech or no speech
 	float total;
 
+	// Statistics
 	float avgSpeakingEnergy; //cchien total log energy when speaking (each buffer)
 	float energySpeakingCount; //cchien used in log energy average
 	float avgNotSpeakingEnergy; //cchien total log energy noise floor (each buffer)
 	float energyNotSpeakingCount; //cchien used in log energy noise floor average
 	float totalSpeakingEnergy;
 	float totalNotSpeakingEnergy;
-	
 	int numUtterances;
+
 public:
+	// Statistics
 	int numTimesTakenFloor;
 	int numTimesNotified;
+	double diffTime, totalSpeakingLength, totalSpeakingLengthNoUtterances, totalActivityLevel;
+	unsigned int totalSpeakingTurns, totalSpeakingInterrupts, totalSpeakingSuccessfulInterrupts, totalSpeakingUnsuccessfulInterrupts;
+	unsigned short state, floorAction;
+	int overlapCounter;
+	bool isDominant;
+	bool isBeingBeeped;
+	bool isGonnaGetBeeped;
+	bool newUtterance;
+
+	double sessionTime;
 	int channelNum;
 	string logFileName;
 	double logEnergy;
-	double diffTime, totalSpeakingLength, sessionTime, totalSpeakingLengthNoUtterances, totalActivityLevel;
-	unsigned int totalSpeakingTurns, totalSpeakingInterrupts, totalSpeakingSuccessfulInterrupts, totalSpeakingUnsuccessfulInterrupts;
-	const static double utteranceLength = 1.0;
-	//const static double dominanceThreshold = .25;
-	unsigned short state, floorAction;
-	int overlapCounter;
-	bool isDominant, isBeingBeeped, isGonnaGetBeeped, newUtterance;
-
 	// Tracks whether or not we've logged an interrupt yet, used in main's updateFloorState function
 	bool interruptLogged;
 	struct timeval _beepStartTime, _overlapTime, _currentBeepLength;
@@ -225,12 +230,12 @@ public:
 			diffTime = (double)_timediff.tv_sec + (double)0.001*_timediff.tv_usec/1000; //time in sec.ms
 			totalSpeakingLength += diffTime;
 
-			if (diffTime >= utteranceLength) {
+			if (diffTime >= UTTERANCE_LENGTH) {
 				totalSpeakingLengthNoUtterances += diffTime;
 			}
 			
 			printSpeakerStats();
-			sendSpeakerStats();			
+			//sendSpeakerStats();			
 			writeSpeakerStats();
 			//writeVolStats();
 			
@@ -460,6 +465,34 @@ public:
 		return currTime.str();
 	}
 
+	void reset() {
+		avgSpeakingEnergy = 0.0;
+	        energySpeakingCount = 0.0;
+        	avgNotSpeakingEnergy = 0.0;
+	        energyNotSpeakingCount = 0.0;
+	        totalSpeakingEnergy = 0.0;
+	        totalNotSpeakingEnergy = 0.0;
+	        numUtterances = 0;
+
+		numTimesTakenFloor = 0;
+	        numTimesNotified = 0;
+	        //diffTime = 0.0;
+		totalSpeakingLength = 0.0;
+		totalSpeakingLengthNoUtterances = 0.0;
+		totalActivityLevel = 0.0;
+	        totalSpeakingTurns = 0;
+		totalSpeakingInterrupts = 0; 
+		totalSpeakingSuccessfulInterrupts = 0; 
+		totalSpeakingUnsuccessfulInterrupts = 0;
+
+	        //state = 0;
+		//floorAction = 0;
+	        overlapCounter = 0;
+	        isDominant = false;
+	        isBeingBeeped = false;
+	        isGonnaGetBeeped = false;
+	        //newUtterance = false;
+	}
 };
 
 } //namespace

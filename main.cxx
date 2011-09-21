@@ -47,6 +47,7 @@ int numTimesFloorChanges = 0;
 string logFilePath;
 
 static int SUPERVISOR_ON = 0;
+static string LOG_NOTE = "";
 
 #define IS_NOT_TALKING(x)	(x & NOT_TALKING)
 #define IS_START_TALKING(x)	(x & START_TALKING)
@@ -107,23 +108,36 @@ inline void initializeSocket() {
         }
 }
 
-int checkIfOn() {
+int checkIfOn(CLAM::Channelizer* channels[] ) {
         ifstream inputFile;
         inputFile.open("./config.txt");
         int data;
+	string data2;
         inputFile >> data;
 
+        ofstream logFile;
+                logFile.open(logFilePath.c_str(), ios::app);
         if(SUPERVISOR_ON != data) {
                 cout << "Supervisor is now ";
                 (data) ? cout << "on!" << endl : cout << "off!" << endl;
 
-                ofstream logFile;
-                logFile.open(logFilePath.c_str(), ios::app);
-                logFile << "Supervisor turned OFF " << endl;
+                logFile << "Supervisor turned";
+		(data) ? logFile << " ON " : logFile << " OFF " << endl;
                 logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#Spoken\t#Notified\tTotalTime\n";
-                logFile.close();
                 SUPERVISOR_ON = data;
+
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			channels[i]->reset();
+		}
         }
+//TODO
+	inputFile >> data2;
+	if(data2.compare(LOG_NOTE)) {
+		logFile << data2 << endl;
+		LOG_NOTE = data2;
+	}
+        logFile.close();
+
         inputFile.close();
         return SUPERVISOR_ON;
 }
@@ -548,9 +562,9 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		else if (0 == numSpeakers) {
 			channelThatHasFloor = -1;
 
-			//if(checkIfOn()) {
+			if(checkIfOn(channels)) {
 			//TODO
-			if(SUPERVISOR_ON) {
+			//if(SUPERVISOR_ON) {
 				for(int i = 0; i < NUMCHANNELS; i++) {
 					if(IS_STOP_TALKING(channels[i]->state)) {
 	
@@ -600,8 +614,8 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	calculateDominance(channels);
 
 	// Send out alerts to dominant channels
-	//if(checkIfOn())
-	if(SUPERVISOR_ON)
+	if(checkIfOn(channels))
+	//if(SUPERVISOR_ON)
 		adjustAlerts(channels, mixers);
 
 	updateFloorActions(channels);
