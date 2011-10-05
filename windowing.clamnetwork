@@ -44,23 +44,23 @@ p, li { white-space: pre-wrap; }
     <Mapping>Linear</Mapping>
   </processing>
 
-  <processing id="AudioAmplifier" position="306,272" size="159,57" type="AudioAmplifier">
-    <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+  <processing id="AudioAmplifier" position="304,269" size="159,57" type="AudioAmplifier">
+    <MaxGain>5</MaxGain>
+    <InitGain>5</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
   <processing id="AudioAmplifier_1" position="296,328" size="174,57" type="AudioAmplifier">
-    <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+    <MaxGain>3</MaxGain>
+    <InitGain>3</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
 
-  <processing id="AudioAmplifier_2" position="297,388" size="174,57" type="AudioAmplifier">
-    <MaxGain>1</MaxGain>
-    <InitGain>1</InitGain>
+  <processing id="AudioAmplifier_2" position="297,387" size="174,57" type="AudioAmplifier">
+    <MaxGain>3</MaxGain>
+    <InitGain>3</InitGain>
     <PortsNumber>1</PortsNumber>
     <DoesGainInterpolation>1</DoesGainInterpolation>
   </processing>
@@ -171,14 +171,14 @@ p, li { white-space: pre-wrap; }
     <DefaultGains size="4">1 1 1 1</DefaultGains>
   </processing>
 
-  <processing id="Track" position="-4,202" size="207,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones-1.wav</SourceFile>
+  <processing id="Track" position="-4,201" size="207,57" type="MonoAudioFileReader">
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones-12.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>
 
   <processing id="Track_1" position="34,404" size="222,57" type="MonoAudioFileReader">
-    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones+2.wav</SourceFile>
+    <SourceFile>/home/rahul/Multiparty/Projects/multipartyspeech/background_tracks/shortshortvibraphones-1.wav</SourceFile>
     <SelectedChannel>0</SelectedChannel>
     <Loop>0</Loop>
   </processing>

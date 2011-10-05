@@ -55,11 +55,19 @@ static string LOG_NOTE = "";
 #define IS_STOP_TALKING(x)	(x & STOP_TALKING)
 #define FLOOR_FREE		-1 == channelThatHasFloor
 
+
+/*********
+* Volume *
+**********/
+const static double LOUD = 40.0;
+const static double BG_LOUD = -25.0;
+const static double SOFT = 20.0;
+
 /*********************
 * Dominance/Dormancy *
 *********************/
 // Percentage of activity a channel needs to achieve to be considered dominant
-const static double DOMINANCE_THRESHOLD = 50;
+const static double DOMINANCE_THRESHOLD = 45;
 
 // Number of seconds an overlap can occur before we take action
 const static double OVERLAP_LENGTH = .5;
@@ -83,7 +91,10 @@ double diffTime = 0.0;
 * Festival *
 ***********/
 const static string TTS_GAIN_PORT = "Gain 4";
-const static double TTS_GAIN = 1.0;
+const static double TTS_GAIN = 1.5;
+const int heap_size = 21000000;  // default scheme heap size
+const int load_init_files = 1; // we want the festival init files loaded
+const int worked = 0;
 
 /********************
 * Background Tracks *
@@ -422,8 +433,8 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
-                        textToSpeech("Take turns", i, channels, mixers);
 			channels[i]->isGonnaGetBeeped = false;
+                        textToSpeech("Take turns", i, channels, mixers);
                 }
         }
 
@@ -536,7 +547,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				}
 			}
 
-
 			//if(channels[channelThatHasFloor]->isDominant)
 			//	outputMsg = giveFloorToLeastDominantGuy(channels);
 
@@ -549,28 +559,26 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			channels[channelThatHasFloor]->timeval_subtract(&_beepTimeDiff, &_currTime, &_overlapStartTime);
 			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
 			currOverlapLength = diffTime;
-			if(currOverlapLength >= OVERLAP_LENGTH) {
+			if(currOverlapLength >= OVERLAP_LENGTH && isOverlapping) {
 				cout << "overlapped for more than 2 sec" << endl;
 				
+				currOverlapLength = 0.0;
+				isOverlapping = false;	// may not be a good var name
+
 				// Mark everyone who is talking that doesn't have the floor
 				for (int i = 0; i < NUMCHANNELS; i++) {
 					// Dominant Case
 					if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
-						cout <<"inside!" << endl;
 						channels[i]->isGonnaGetBeeped = true;
 					}
 				}
-
-				currOverlapLength = 0.0;
-				isOverlapping = false;	// may not be a good var name
 			}
 		}
 		// When someone's done talking, play their BG track
 		else if (0 == numSpeakers) {
 			channelThatHasFloor = -1;
-
-			if(checkIfOn(channels)) {
-			//TODO
+	
+/*			if(checkIfOn(channels)) {
 			//if(SUPERVISOR_ON) {
 				for(int i = 0; i < NUMCHANNELS; i++) {
 					if(IS_STOP_TALKING(channels[i]->state)) {
@@ -599,39 +607,123 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	       	 				CLAM::Processing& targetTrack = network.GetProcessing(track);
 	        				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
 
-						//TODO
 						//flush(cout);
 						//cout << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
-						//flush(cout);//TODO
+						//flush(cout);
 					}
 				}
-			}
+			}*/
 		}
 	}
 
 	return outputMsg;
 }
 
+/**
+* Determines when to play a background tone for each channel
+* Plays a tone as specified in the CLAM network file when someone starts talking
+*/
+void playBgTones(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+	if(checkIfOn(channels)) {
+		//if(SUPERVISOR_ON) {
+		for(int i = 0; i < NUMCHANNELS; i++) {
+			if(IS_START_TALKING(channels[i]->state)) {
+	
+				//Turn everyone's BG channel on
+				CLAM::SendFloatToInControl(*(mixers[0]), BG_GAIN_PORT, 1.0);
+				CLAM::SendFloatToInControl(*(mixers[1]), BG_GAIN_PORT, 1.0);
+				CLAM::SendFloatToInControl(*(mixers[2]), BG_GAIN_PORT, 1.0);
+				CLAM::SendFloatToInControl(*(mixers[3]), BG_GAIN_PORT, 1.0);
+
+				string track;
+				if(i == 0) {
+					track = "Track";
+				}
+				else if(i == 1) {
+					track = "Track_1";
+				}
+				else if(i == 2) {
+					track = "Track_2";
+				}
+				else if(i == 3) {
+					track = "Track_3";
+				}
+
+				CLAM::Processing& targetTrack = network.GetProcessing(track);
+				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
+			}
+		}
+	}
+}
+
+/* 
+* Checks the background noise level of each channel and their speaking energy level
+* Generates an alert if:
+* 1. Background noise is above BG_NOISE_THRESHOLD
+* 2. SNR is low
+* 3. SNR is high
+*/
+string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+        ostringstream oss;
+
+	for(int i = 0; i < NUMCHANNELS; i++) {
+		// If they're speaking too soft
+		if(channels[i]->counter == channels[i]->VU_NUM_UTTERANCES) {
+			if(channels[i]->avgVuMeter > LOUD) {
+				// alert you're too loud
+				oss << "Channel " << i << " is too loud at " << channels[i]->avgVuMeter << endl;
+	 	               	textToSpeech("You're too loud", i, channels, mixers);
+
+			}
+			else if(channels[i]->avgVuMeter < SOFT) {
+				// alert you're too soft
+				oss << "Channel " << i << " is too soft" << endl;
+		                textToSpeech("You're too soft", i, channels, mixers);
+
+			}
+			channels[i]->avgVuMeter = 0.0;
+			channels[i]->vuMeter = 0.0;
+			channels[i]->counter = 0;
+		}
+
+		//if(i == 0) 
+		//	cout << "Not sp energy is " << channels[i]->avgNotSpeakingEnergy << endl;
+
+		// check everyone's background noise constantly
+		if(channels[i]->energyNotSpeakingCount >= channels[i]->VU_NOTSP_NUM_SAMPLES) {
+			if(channels[i]->avgNotSpeakingEnergy >= BG_LOUD) {
+				oss << "Channel " << i << " background noise is too loud at " << channels[i]->avgNotSpeakingEnergy << endl;
+		                textToSpeech("Background noise too loud", NUMCHANNELS, channels, mixers);
+			}
+			channels[i]->totalNotSpeakingEnergy = 0.0;
+			channels[i]->energyNotSpeakingCount = 0;
+		}
+	}
+	return oss.str();
+}
+
+/**
+* Main steps the Supervisor takes
+*/
 string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Processing* mixers[]) {
 	string notifyMsg = "";
 	
-	ofstream dataFile;
-	
+	// See who started talking, play their track
+	playBgTones(channels, mixers);
+
+	notifyMsg = checkSoundLevels(channels, mixers);
+
 	// Calculates the activity level for each channel
 	calculateDominance(channels);
 
-	// Send out alerts to dominant channels
+	// If Supervisor is on, send out alerts to dominant channels
 	if(checkIfOn(channels))
-	//if(SUPERVISOR_ON)
 		adjustAlerts(channels, mixers);
 
 	updateFloorActions(channels);
 
 	// Figure out if we have any overlaps or barge-ins
-	notifyMsg = updateFloorState(channels, mixers);
-
-	//dataFile << "</MultiPartySpeech>\n";
-	//dataFile.close();
+	notifyMsg += updateFloorState(channels, mixers);
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
 		cout << notifyMsg << endl;
@@ -706,16 +798,6 @@ int main( int argc, char* argv[] ) {
 			CLAM::SendFloatToInControl(*(amps[i]), "Gain", 0.5);
 		}
 
-	/*	// Background Noise
-		CLAM::Processing& trackVol1 = network.GetProcessing("AudioAmplifier");
-		CLAM::Processing& trackVol2 = network.GetProcessing("AudioAmplifier_1");
-		CLAM::Processing& trackVol3 = network.GetProcessing("AudioAmplifier_2");
-		CLAM::Processing& trackVol4 = network.GetProcessing("AudioAmplifier_3");
-		CLAM::Processing* tracks[4] ={&trackVol1, &trackVol2, &trackVol3, &trackVol4};
-		for(int i = 0; i < NUMCHANNELS; i++) {
-			CLAM::SendFloatToInControl(*tracks[i], "Gain", 0.0);
-		}
-*/
 		CLAM::Processing& generator = network.GetProcessing("Generator");
 
 		CLAM::Processing& mic = network.GetProcessing("AudioSource");
@@ -799,43 +881,17 @@ int main( int argc, char* argv[] ) {
 
 		runLoginManager();
 
-/*		while(CURRNUMCHANNELS == 0) {
-			cout << "No participants, sleeping for " << endl;// << SLEEP_WAIT << " seconds" << endl;
-			sleep(5);
-		}	
-*/
-
-   		int heap_size = 21000000;  // default scheme heap size
+   		/*int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
-		int worked = 0;
+		int worked = 0;*/
 
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
 
-/*while(1) {
- 	textToSpeech("Any thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Your thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Take turns", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Speak up", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Any thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Any ideas ?", 0, channels, mixers);
-	sleep(2);
-}*/
-
-
 		while(1) {		
-			//cout << "before updateFloorStuff" << endl;
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
-			//cout << "before adjustAmps" << endl;
 			//adjustAmps(channels, amps);
 			//playTracks(channels, tracks);
-
-			//checkIfOn();
 		}
 		delete [] channels;
 		delete [] mixers;
