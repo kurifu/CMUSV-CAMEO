@@ -34,6 +34,8 @@
 /* Festival */
 #include "/usr/include/festival/festival.h"
 
+#include "request.hxx"
+
 using namespace std;
 
 /*************

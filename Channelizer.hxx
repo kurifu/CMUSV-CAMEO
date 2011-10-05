@@ -20,7 +20,6 @@
 #include <xmlrpc-c/base.hpp>
 #include <xmlrpc-c/client.hpp> 
 
-
 /* Speaker Macros */
 #define NOT_TALKING		0x1000
 #define START_TALKING		0x0100
