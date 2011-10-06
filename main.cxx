@@ -35,6 +35,8 @@
 #include "/usr/include/festival/festival.h"
 
 #include "request.hxx"
+#include <queue>
+#include "PriorityModel.hxx"
 
 using namespace std;
 
@@ -80,6 +82,12 @@ bool isOverlapping = false;
 
 struct timeval _currTime, _beepTimeDiff, _overlapStartTime, _dormancyInterval, _dormancyIntervalHolder;
 double diffTime = 0.0;
+
+/**************************
+* Reinforcement Scheduler *
+**************************/
+// Priority queue of Request objects, note that PriorityModel is the function object needed for comparison defined in PriorityModel.hxx
+static priority_queue<Request, vector<Request>, PriorityModel> requestQ;
 
 /***********
 * Festival *
@@ -251,6 +259,7 @@ void* connect(void* portno) {
                 close(mySocketFD);
         }
 	//LISTEN_PORT++;
+	pthread_exit(NULL);
 }
 
 /**
@@ -258,7 +267,7 @@ void* connect(void* portno) {
 */
 void runLoginManager() {
         pthread_t connect1, connect2, connect3, connect4;
-        char* dummyMsg = "return msg?";
+        //char* dummyMsg = "return msg?";
 	int port1 = 4444;
 	int port2 = 4445;
 	int port3 = 4446;
@@ -372,12 +381,12 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 /**
 * If channel is the maximum number of channels, send TTS to every channel, otherwise only send to the channel specified by arg 'channel'
 */
-void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+void textToSpeech(string msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 	EST_Wave wave;
 
 	CLAM::Processing& tts = network.GetProcessing("TTS");
-
-	festival_text_to_wave(msg, wave);
+	festival_text_to_wave(msg.c_str(), wave);
+	//festival_text_to_wave(msg, wave);
         wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
 	if(channel == NUMCHANNELS) {
@@ -424,7 +433,12 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
-                        textToSpeech("Take turns", i, channels, mixers);
+                        //textToSpeech("Take turns", i, channels, mixers);
+			Request* r1 = new Request();
+			//r1->setTimeSent();
+			r1->setChannel(i);
+			r1->setPriority(10);
+			r1->setMessage("Take turns");
 			channels[i]->isGonnaGetBeeped = false;
                 }
         }
@@ -434,14 +448,18 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 // Looks at each Speaker State, updates each channel's Floor Action State
 void updateFloorActions(CLAM::Channelizer* channels[]) {
 	for(int i = 0; i < NUMCHANNELS; i++) {
-		if(IS_START_TALKING(channels[i]->state))
+		if(IS_START_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = TAKE_FLOOR;
-		else if (IS_STILL_TALKING(channels[i]->state))
+		}
+		else if (IS_STILL_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = HOLD_FLOOR;
-		else if (IS_STOP_TALKING(channels[i]->state))
+		}
+		else if (IS_STOP_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = RELEASE_FLOOR;
-		else if (IS_NOT_TALKING(channels[i]->state))
+		}
+		else if (IS_NOT_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = NO_FLOOR;
+		}
 	}
 }
 
@@ -538,7 +556,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				}
 			}
 
-
 			//if(channels[channelThatHasFloor]->isDominant)
 			//	outputMsg = giveFloorToLeastDominantGuy(channels);
 
@@ -572,8 +589,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			channelThatHasFloor = -1;
 
 			if(checkIfOn(channels)) {
-			//TODO
-			//if(SUPERVISOR_ON) {
 				for(int i = 0; i < NUMCHANNELS; i++) {
 					if(IS_STOP_TALKING(channels[i]->state)) {
 	
@@ -600,11 +615,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					
 	       	 				CLAM::Processing& targetTrack = network.GetProcessing(track);
 	        				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
-
-						//TODO
-						//flush(cout);
-						//cout << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
-						//flush(cout);//TODO
 					}
 				}
 			}
@@ -614,10 +624,22 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	return outputMsg;
 }
 
+//TODO
+/*void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+        while(!requestQ.empty()) {
+                cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << endl;
+		string msg = (string)(requestQ.top()).getMessage();
+        	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
+		requestQ.pop();
+        }
+}*/
+
+
 string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Processing* mixers[]) {
 	string notifyMsg = "";
-	
-	ofstream dataFile;
+
+	// Process any Request objects we have
+	//processRequests(channels, mixers);
 	
 	// Calculates the activity level for each channel
 	calculateDominance(channels);
@@ -631,9 +653,6 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 
 	// Figure out if we have any overlaps or barge-ins
 	notifyMsg = updateFloorState(channels, mixers);
-
-	//dataFile << "</MultiPartySpeech>\n";
-	//dataFile.close();
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
 		cout << notifyMsg << endl;
@@ -665,7 +684,21 @@ int main( int argc, char* argv[] ) {
 
 	try {
 
+/*Request r1;
+r1.setPriority(10);
+Request r2;
+r2.setPriority(1);
+Request r3;
+r3.setPriority(7);
+requestQ.push(r3);
+requestQ.push(r2);
+requestQ.push(r1);
+while(!requestQ.empty()) {
+	cout << requestQ.top().getPriority() << endl;
+	requestQ.pop();
+}
 
+exit(1);*/
 
 /*******************************************************************/
 /*-----------------------------SETUP-------------------------------*/
@@ -718,7 +751,7 @@ int main( int argc, char* argv[] ) {
 			CLAM::SendFloatToInControl(*tracks[i], "Gain", 0.0);
 		}
 */
-		CLAM::Processing& generator = network.GetProcessing("Generator");
+		//CLAM::Processing& generator = network.GetProcessing("Generator");
 
 		CLAM::Processing& mic = network.GetProcessing("AudioSource");
 		CLAM::Channelizer& myp1 = (CLAM::Channelizer&) network.GetProcessing("Channelizer");
@@ -735,15 +768,14 @@ int main( int argc, char* argv[] ) {
 		myp2.channelNum = 2;
 		myp3.channelNum = 3;
 		myp4.channelNum = 4;
-
 		// Data Logging Stuff
 		string filePath = argv[1];
 		filePath = "/home/rahul/Multiparty/Projects/multipartyspeech/logs/" + filePath;
 		logFilePath = filePath;
-		myp1.setFileName(filePath);
-		myp2.setFileName(filePath);
-		myp3.setFileName(filePath);
-		myp4.setFileName(filePath);
+/*		myp1.setFileName(logFilePath);
+		myp2.setFileName(logFilePath);
+		myp3.setFileName(logFilePath);
+		myp4.setFileName(logFilePath);*/
 		ofstream logFile;
 		logFile.open(filePath.c_str(), ios::app);
 		logFile << "New Test Started At " << myp1.getDate() << "\n";
@@ -756,7 +788,6 @@ int main( int argc, char* argv[] ) {
 		myp3.GetInPort("Input").SetSize(winSize);	
 		myp4.GetInPort("Input").SetSize(winSize);	
 		
-
 		//JACK CODE
          	//jack_client_t * jackClient;
          	string jackClientName;
@@ -798,7 +829,6 @@ int main( int argc, char* argv[] ) {
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 		gettimeofday(&_dormancyInterval, 0x0);
-
 		runLoginManager();
 
 /*		while(CURRNUMCHANNELS == 0) {
@@ -809,7 +839,6 @@ int main( int argc, char* argv[] ) {
 
    		int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
-		int worked = 0;
 
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
@@ -829,6 +858,11 @@ int main( int argc, char* argv[] ) {
 	sleep(2);
 }*/
 
+			//Request* r1 = new Request();
+                        //r1->setTimeSent();
+                        //r1->setChannel(0);
+                        //r1->setPriority(10);
+                        //r1->setMessage("Take turns");
 
 		while(1) {		
 			//cout << "before updateFloorStuff" << endl;

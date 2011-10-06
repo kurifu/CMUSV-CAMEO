@@ -20,6 +20,7 @@
 #include <xmlrpc-c/base.hpp>
 #include <xmlrpc-c/client.hpp> 
 
+
 /* Speaker Macros */
 #define NOT_TALKING		0x1000
 #define START_TALKING		0x0100
@@ -51,7 +52,7 @@ class Channelizer : public CLAM::Processing {
 
 	const static float LOW_NOISE = -10.0;
 	const static float HIGH_NOISE = 0.0;
-	const static float LOWSR = 5;
+	const static float LOWSR = 3;
 	const static float HIGHSR = 20;
 	const static double UTTERANCE_LENGTH = 1.0;
 
@@ -70,13 +71,22 @@ class Channelizer : public CLAM::Processing {
 	// Statistics
 	float avgSpeakingEnergy; //cchien total log energy when speaking (each buffer)
 	float energySpeakingCount; //cchien used in log energy average
-	float avgNotSpeakingEnergy; //cchien total log energy noise floor (each buffer)
-	float energyNotSpeakingCount; //cchien used in log energy noise floor average
 	float totalSpeakingEnergy;
-	float totalNotSpeakingEnergy;
+	float currentSpeakingEnergy;
 	int numUtterances;
 
 public:
+	float avgNotSpeakingEnergy; //cchien total log energy noise floor (each buffer)
+	float energyNotSpeakingCount; //cchien used in log energy noise floor average
+	float totalNotSpeakingEnergy;
+	float vuMeter;
+	float vuMeterNotSp;
+	float avgVuMeter;
+	float avgVuMeterNotSp;
+	int counter;
+	int counterNotSp;
+	const static int VU_NUM_UTTERANCES = 5;
+	const static int VU_NOTSP_NUM_SAMPLES = 500;
 	// Statistics
 	int numTimesTakenFloor;
 	int numTimesNotified;
@@ -135,6 +145,14 @@ public:
 		avgNotSpeakingEnergy = 0.0; //cchien total log energy noise floor (each buffer)
 		energyNotSpeakingCount = 0.01; //cchien used in log energy noise floor average
 
+		currentSpeakingEnergy = 0.0;
+		vuMeter = 0.0;
+		vuMeterNotSp = 0.0;
+		avgVuMeter = 0.0;
+		avgVuMeterNotSp = 0.0;
+		counter = 0;
+		counterNotSp = 0;
+
 		state = NOT_TALKING;
 		floorAction = NO_FLOOR;
 		overlapCounter = 0;
@@ -161,6 +179,8 @@ public:
 		for (unsigned i=0; i<bufferSize; i++) 
 		{
 			const CLAM::TData & current = data[i];
+			//if(channelNum == 1)
+			//	cout << "Current: " << current << endl;
 			if (current>_max) _max=current;
 			if (current<-_max) _max=-current;
 		}
@@ -169,11 +189,15 @@ public:
 			bufferSNS = 1;
 			//avgSpeakingEnergy += logEnergy; //cchien
 			totalSpeakingEnergy += logEnergy;
+			currentSpeakingEnergy = logEnergy;
 			energySpeakingCount++; // used in log energy average
 		}
 		else {
-			avgNotSpeakingEnergy += logEnergy;
+			//avgNotSpeakingEnergy += logEnergy;
+			totalNotSpeakingEnergy += logEnergy;
 			energyNotSpeakingCount++;
+			//if(channelNum == 1)
+				//cout << "Avg Not Speaking: " << avgVuMeterNotSp << endl;
 		}
 		_bufferCount++;
 		_max = 1e-10;
@@ -233,7 +257,7 @@ public:
 				totalSpeakingLengthNoUtterances += diffTime;
 			}
 			
-			printSpeakerStats();
+			//printSpeakerStats();
 			//sendSpeakerStats();			
 			writeSpeakerStats();
 			//writeVolStats();
@@ -244,76 +268,55 @@ public:
 		else if (windowSNS<1 && IS_STOP_TALKING(state)) {
 			//cout << "stopped talking!\n";
 			state = NOT_TALKING;
-			newUtterance = false; // TODO
-			//calculateSNR();
-			
-			avgSpeakingEnergy = totalSpeakingEnergy / energySpeakingCount;
-			cout << "AvgSPEnergy: " << avgSpeakingEnergy << "\tenergySpeakingCount: " << energySpeakingCount << endl;
-			float signalToNoise = fabs(avgSpeakingEnergy - avgNotSpeakingEnergy) / avgNotSpeakingEnergy;
-
-	                if (avgNotSpeakingEnergy < LOW_NOISE) {
-	                        // -2 = speaking too soft, -1 = mic to soft
-	                        (signalToNoise < LOWSR) ? loudSoft = -2 : loudSoft = -1;
-	                }
-	                // Otherwise you're good
-	                else {
-	                        loudSoft = 0;
-	                }
+			newUtterance = false;
+			calculateSp();
 		}
 
+		calculateBg();
 
-		calculateSNR();
-
-/*		//cchien signal to noise ratio estimate
-		float energySpeakingAvg = avgSpeakingEnergy / energySpeakingCount;
-		float energyNotSpeakingAvg = avgNotSpeakingEnergy / energyNotSpeakingCount;
-		float signalToNoise = fabs(energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg;
-
-		// 
-		float LOW_NOISE = -10.0;
-		float HIGH_NOISE = 0.0;
-		float LOWSR = 5;
-		float HIGHSR = 20;
-
-		if (energyNotSpeakingAvg < LOW_NOISE) {
-			// -2 = speaking too soft, -1 = mic to soft
-			(signalToNoise < LOWSR) ? loudSoft = -2 : loudSoft = -1;
-		}
-		// Otherwise you're good
-		else {
-			loudSoft = 0;
-		}
-*/
 		//cout << "\t windowSNS: " << windowSNS << ", state: " << hex << state << endl;
 		gettimeofday(&_endtime,0x0);		
 		timeval_subtract(&_timediff, &_endtime, &_sessionStart);
 		sessionTime = (double)_timediff.tv_sec + (double)0.001*_timediff.tv_usec/1000; //time in sec.ms			
-		//totalActivityLevel = totalSpeakingLength / sessionTime;
-		
-		//(totalActivityLevel >= dominanceThreshold) ? isDominant = true : isDominant = false;
 
-		//cout << _name << " total spoken for " << sessionTime << " secs\n";
 		_input.Consume();
 		return true;
 	}
-//TODO
-	void calculateSNR() {
-		//cout << "AvgSPEnergy: " << avgSpeakingEnergy << "\tenergySpeakingCount: " << energySpeakingCount << endl;
-		
-		//avgSpeakingEnergy = (energySpeakingCount == 0) ? 0 : avgSpeakingEnergy / energySpeakingCount;
-		//avgSpeakingEnergy = avgSpeakingEnergy / energySpeakingCount;
+
+	/**
+	* Calculate speaking energy statistics
+	* We reset totalSpeakingEnergy and energySpeakingCount at the end of each utterance, which is when this function is called
+	*/
+	void calculateSp() {
+		avgSpeakingEnergy = totalSpeakingEnergy / energySpeakingCount;
+
+		totalSpeakingEnergy = 0.0;
+		energySpeakingCount = 0;
+	
+		vuMeter += avgSpeakingEnergy;
+		counter++;
+		avgVuMeter = vuMeter / counter;
+		if(channelNum == 1)
+			cout << "avgVuMeter is " << avgVuMeter << endl;
+	}
+
+	/**
+	* Calculate background noise statistics
+	*/
+	void calculateBg() {
 		avgNotSpeakingEnergy = totalNotSpeakingEnergy / energyNotSpeakingCount;
+		//counterNotSp++;
 
-                /*float signalToNoise = fabs(avgSpeakingEnergy - avgNotSpeakingEnergy) / avgNotSpeakingEnergy;
-
-                if (avgNotSpeakingEnergy < LOW_NOISE) {
-                        // -2 = speaking too soft, -1 = mic to soft
-                        (signalToNoise < LOWSR) ? loudSoft = -2 : loudSoft = -1;
-                }
-                // Otherwise you're good
-                else {
-                        loudSoft = 0;
-                }*/
+		//cout << "energyNotSpeakingCount is " << energyNotSpeakingCount << endl;
+		//if(energyNotSpeakingCount >= VU_NOTSP_NUM_SAMPLES) {
+			//cout << "hi" << endl;
+			//totalNotSpeakingEnergy = 0.0;
+			//energyNotSpeakingCount = 0;
+			//counterNotSp = 0;
+			//avgNotSpeakingEnergy = 0.0;
+		//}
+		//cout << "Avg BG Noise is " << avgVuMeterNotSp << endl;
+		//cout << "Avg BG Noise is " << avgNotSpeakingEnergy << endl;
 	}
 
 	int timeval_subtract (
@@ -362,21 +365,6 @@ public:
 		logFileName = name;
 	}
 
-	//cchien
-	// TODO: update this function, or remove completely since we don't use it
-	void writeVolStats() {
-		ofstream volFile;
-		volFile.open("VolumeData.log", ios::app);
-		float energySpeakingAvg = avgSpeakingEnergy / energySpeakingCount;
-		float energyNotSpeakingAvg = avgNotSpeakingEnergy / energyNotSpeakingCount;
-		float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
-		volFile << "Speaking\tNot Speaking\tS-to-R\n";
-		cout << "Speaking\tNot Speaking\tS-to-R\n";
-		volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
-		cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
-		volFile.close();
-	}
-	
 	inline void printSpeakerStats() {
 		cout << "\t" << _name << " spoke for " << diffTime << " secs\n";
 		cout << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
@@ -442,12 +430,19 @@ public:
 		logFile.precision(7);
 
 		// CurrTime, ChannelName, Speaking Length, TSL, TSLNoU, TSI, Dom%, IsDominant, AvgSpeakingEnergy, AvgNotSpeakingEnergy, NumTimesTakenFloor, NumTimesNotified, TotalSessionTime
-		logFile << getDate() << "\t" <<  _name << "\t" << diffTime << "\t" << totalSpeakingLength << "\t" << totalSpeakingLengthNoUtterances << "\t" << totalSpeakingInterrupts << "\t" << totalActivityLevel << "\t";
-	       (isDominant) ? logFile << "YES" : logFile << "NO";
-		logFile << "\t" << avgSpeakingEnergy << "\t" << avgNotSpeakingEnergy;
-		logFile << "\t" << numTimesTakenFloor;
-		logFile << "\t" << numTimesNotified;
-		logFile << "\t" << sessionTime << "\n";
+		logFile << getDate() << "\t";
+		logFile <<  _name << "\t";
+		logFile << diffTime << "\t";
+		logFile << totalSpeakingLength << "\t";
+		logFile << totalSpeakingLengthNoUtterances << "\t";
+		logFile << totalSpeakingInterrupts << "\t";
+		logFile << totalActivityLevel << "\t";
+	       (isDominant) ? logFile << "YES\t" : logFile << "NO\t";
+		logFile << avgSpeakingEnergy << "\t";
+		logFile << avgNotSpeakingEnergy << "\t";
+		logFile << numTimesTakenFloor << "\t";
+		logFile << numTimesNotified << "\t";
+		logFile << sessionTime << "\n";
 		logFile.close();
 	}
 
@@ -475,7 +470,6 @@ public:
 
 		numTimesTakenFloor = 0;
 	        numTimesNotified = 0;
-	        //diffTime = 0.0;
 		totalSpeakingLength = 0.0;
 		totalSpeakingLengthNoUtterances = 0.0;
 		totalActivityLevel = 0.0;
@@ -484,14 +478,30 @@ public:
 		totalSpeakingSuccessfulInterrupts = 0; 
 		totalSpeakingUnsuccessfulInterrupts = 0;
 
-	        //state = 0;
-		//floorAction = 0;
 	        overlapCounter = 0;
 	        isDominant = false;
 	        isBeingBeeped = false;
 	        isGonnaGetBeeped = false;
-	        //newUtterance = false;
+
+		numTimesNotified = 0;
 	}
+
+// NOT USED
+        //cchien
+        // TODO: update this function, or remove completely since we don't use it
+        void writeVolStats() {
+                ofstream volFile;
+                volFile.open("VolumeData.log", ios::app);
+                float energySpeakingAvg = avgSpeakingEnergy / energySpeakingCount;
+                float energyNotSpeakingAvg = avgNotSpeakingEnergy / energyNotSpeakingCount;
+                float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
+                volFile << "Speaking\tNot Speaking\tS-to-R\n";
+                cout << "Speaking\tNot Speaking\tS-to-R\n";
+                volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+                cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
+                volFile.close();
+        }
+
 };
 
 } //namespace
