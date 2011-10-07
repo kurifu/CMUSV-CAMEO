@@ -62,10 +62,12 @@ static string LOG_NOTE = "";
 
 /*********
 * Volume *
-**********/
+**********
 const static double LOUD = 40.0;
 const static double BG_LOUD = -25.0;
 const static double SOFT = 20.0;
+const static int VU_NUM_UTTERANCES = 1;
+const static int VU_NOTSP_NUM_SAMPLES = 500;
 
 /*********************
 * Dominance/Dormancy *
@@ -105,12 +107,12 @@ const static double TTS_GAIN = 1.5;
 const int heap_size = 21000000;  // default scheme heap size
 const int load_init_files = 1; // we want the festival init files loaded
 const int worked = 0;
-const static string TTS_TOO_SOFT= "You're too Soft";
+/*const static string TTS_TOO_SOFT= "You're too Soft";
 const static string TTS_TOO_LOUD = "You're too Loud";
 const static string TTS_BG_TOO_LOUD = "Background noise too loud";
+*/
 const static string TTS_DORMANCY = "Your thoughts ?";
 const static string TTS_DOMINANCE = "Take turns";
-
 /********************
 * Background Tracks *
 ********************/
@@ -246,6 +248,13 @@ void* connect(void* portno) {
                         CURRNUMCHANNELS++;
                         string command = "jack_netsource -H " + (string)ip + " &";
                         system(command.c_str());
+
+			Request *r = new Request();
+			r->setTimeSent();
+			r->setChannel(NUMCHANNELS);
+			r->setPriority(4);
+			r->setMessage("Someone entered");
+			requestQ.push(*r);
 
 			sleep(1);
 
@@ -398,6 +407,7 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 * If channel is the maximum number of channels, send TTS to every channel, otherwise only send to the channel specified by arg 'channel'
 */
 void textToSpeech(string msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+	cout << "Inside textToSpeech, message is " << msg <<  endl;
 	EST_Wave wave;
 
 	CLAM::Processing& tts = network.GetProcessing("TTS");
@@ -441,9 +451,9 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 				channelToAlert = i;
 			}
 		}
-		//textToSpeech("Your thoughts ?", channelToAlert, channels, mixers);
+		// TTS Dormancy alert
 		Request* r2 = new Request();
-		//r2->setTimeSent();
+		r2->setTimeSent();
 		r2->setChannel(channelToAlert);
 		r2->setPriority(10);
 		r2->setMessage(TTS_DORMANCY);
@@ -452,10 +462,11 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 	}
 	
         for(int i = 0; i < NUMCHANNELS; i++) {
+//TODO
 		if(channels[i]->isGonnaGetBeeped) {
-                        //textToSpeech("Take turns", i, channels, mixers);
 			Request* r1 = new Request();
-			//r1->setTimeSent();
+			// TTS Dominance alert
+			r1->setTimeSent();
 			r1->setChannel(i);
 			r1->setPriority(1);
 			r1->setMessage(TTS_DOMINANCE);
@@ -600,6 +611,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					// Dominant Case
 					if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
 						channels[i]->isGonnaGetBeeped = true;
+//TODO
 					}
 				}
 			}
@@ -690,23 +702,24 @@ void playBgTones(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 * 1. Background noise is above BG_NOISE_THRESHOLD
 * 2. SNR is low
 * 3. SNR is high
-*/
+
 string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
         ostringstream oss;
 
 	for(int i = 0; i < NUMCHANNELS; i++) {
 		// If they're speaking too soft
-		if(channels[i]->counter == channels[i]->VU_NUM_UTTERANCES) {
+		if(channels[i]->counterVu == VU_NUM_UTTERANCES) {
 			if(channels[i]->avgVuMeter > LOUD) {
 				// alert you're too loud
 				oss << "Channel " << i << " is too loud at " << channels[i]->avgVuMeter << endl;
 	 	               	//textToSpeech("You're too loud", i, channels, mixers);
 				Request* r3 = new Request();
-				//r3->setTimeSent();
+				r3->setTimeSent();
 				r3->setChannel(i);
 				r3->setPriority(1);
 				r3->setMessage(TTS_TOO_LOUD);
-				requestQ.push(*r3);
+				//requestQ.push(*r3);
+				channels[i]->pushInternalQ(*r3);
 
 			}
 			else if(channels[i]->avgVuMeter < SOFT) {
@@ -714,7 +727,7 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				oss << "Channel " << i << " is too soft" << endl;
 		                //textToSpeech("You're too soft", i, channels, mixers);
 				Request* r4 = new Request();
-				//r4->setTimeSent();
+				r4->setTimeSent();
 				r4->setChannel(i);
 				r4->setPriority(1);
 				r4->setMessage(TTS_TOO_SOFT);
@@ -723,19 +736,19 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			}
 			channels[i]->avgVuMeter = 0.0;
 			channels[i]->vuMeter = 0.0;
-			channels[i]->counter = 0;
+			channels[i]->counterVu = 0;
 		}
 
 		//if(i == 0) 
 		//	cout << "Not sp energy is " << channels[i]->avgNotSpeakingEnergy << endl;
 
 		// check everyone's background noise constantly
-		if(channels[i]->energyNotSpeakingCount >= channels[i]->VU_NOTSP_NUM_SAMPLES) {
+		if(channels[i]->energyNotSpeakingCount >= VU_NOTSP_NUM_SAMPLES) {
 			if(channels[i]->avgNotSpeakingEnergy >= BG_LOUD) {
 				oss << "Channel " << i << " background noise is too loud at " << channels[i]->avgNotSpeakingEnergy << endl;
 		                //textToSpeech("Background noise too loud", NUMCHANNELS, channels, mixers);
 				Request* r5 = new Request();
-				//r5->setTimeSent();
+				r5->setTimeSent();
 				r5->setChannel(i);
 				r5->setPriority(1);
 				r5->setMessage(TTS_BG_TOO_LOUD);
@@ -746,16 +759,16 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		}
 	}
 	return oss.str();
-}
+}*/
 
 
 
 //TODO
 void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
         while(!requestQ.empty()) {
-                cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << endl;
+                cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
 		string msg = (string)(requestQ.top()).getMessage();
-		cout << "messgae: " << msg << endl; 
+		cout << "\tmessgae: " << msg << endl; 
         	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
 		//textToSpeech("Take turns", 0, channels, mixers);		
 		requestQ.pop();
@@ -782,7 +795,7 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	// See who started talking, play their track
 	playBgTones(channels, mixers);
 
-	notifyMsg = checkSoundLevels(channels, mixers);
+	//notifyMsg = checkSoundLevels(channels, mixers);
 
 	updateFloorActions(channels);
 
@@ -891,6 +904,11 @@ exit(1);*/
 		myp2.SetPName("Channel 2");
 		myp3.SetPName("Channel 3");
 		myp4.SetPName("Channel 4");		
+
+		myp1.setGlobalQ(&requestQ);
+		myp2.setGlobalQ(&requestQ);
+		myp3.setGlobalQ(&requestQ);
+		myp4.setGlobalQ(&requestQ);
 
 		myp1.channelNum = 1;
 		myp2.channelNum = 2;

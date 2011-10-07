@@ -20,6 +20,10 @@
 #include <xmlrpc-c/base.hpp>
 #include <xmlrpc-c/client.hpp> 
 
+// Priority Queue
+#include <queue>
+#include "/home/rahul/Multiparty/Projects/multipartyspeech/request.hxx"
+#include "/home/rahul/Multiparty/Projects/multipartyspeech/PriorityModel.hxx"
 
 /* Speaker Macros */
 #define NOT_TALKING		0x1000
@@ -43,6 +47,16 @@
 #define IS_HOLD_FLOOR(x)	(x & HOLD_FLOOR)
 #define IS_RELEASE_FLOOR(x)	(x & RELEASE_FLOOR)
 
+const string TTS_TOO_SOFT= "You're too Soft";
+const string TTS_TOO_LOUD = "You're too Loud";
+const string TTS_BG_TOO_LOUD = "Background noise too loud";
+const static double LOUD = 35.0;
+const static double BG_LOUD = -25.0;
+const static double SOFT = 25.0;
+const static int VU_NUM_UTTERANCES = 1;
+const static int VU_NOTSP_NUM_SAMPLES = 500;
+
+
 using namespace std;
 
 namespace CLAM
@@ -58,7 +72,6 @@ class Channelizer : public CLAM::Processing {
 
 	AudioInPort _input;
 	double _max;
-	int loudSoft; // 0 = ok, -1 = mic too soft, -2 = speaking too soft
 	float _average;
 	unsigned _bufferCount;
 	string _name;
@@ -75,7 +88,11 @@ class Channelizer : public CLAM::Processing {
 	float currentSpeakingEnergy;
 	int numUtterances;
 
+
 public:
+
+	priority_queue<Request, vector<Request>, PriorityModel> * globalQ;
+        priority_queue<Request, vector<Request>, PriorityModel> internalQ;
 	float avgNotSpeakingEnergy; //cchien total log energy noise floor (each buffer)
 	float energyNotSpeakingCount; //cchien used in log energy noise floor average
 	float totalNotSpeakingEnergy;
@@ -83,10 +100,9 @@ public:
 	float vuMeterNotSp;
 	float avgVuMeter;
 	float avgVuMeterNotSp;
-	int counter;
+	int counterVu;
 	int counterNotSp;
-	const static int VU_NUM_UTTERANCES = 1;
-	const static int VU_NOTSP_NUM_SAMPLES = 500;
+
 	// Statistics
 	int numTimesTakenFloor;
 	int numTimesNotified;
@@ -103,10 +119,10 @@ public:
 	int channelNum;
 	string logFileName;
 	double logEnergy;
-	// Tracks whether or not we've logged an interrupt yet, used in main's updateFloorState function
+	// Tracks whether or not we've logged an interrupt yet, used in main's updateFloorState function for TSI
 	bool interruptLogged;
 	struct timeval _beepStartTime, _overlapTime, _currentBeepLength;
-	
+
 	Channelizer( const Config& config = Config())
 		: _input("Input", this)
 		, _max(0.)
@@ -123,8 +139,6 @@ public:
 		totalSpeakingUnsuccessfulInterrupts = 0;			// TSUI: # times unsuccessful barge in
 		_average = 0.0;		
 
-		loudSoft = 0;
-		
 		diffTime = 0.0;
 		gettimeofday(&_starttime,0x0);		
 		gettimeofday(&_endtime,0x0);
@@ -150,7 +164,7 @@ public:
 		vuMeterNotSp = 0.0;
 		avgVuMeter = 0.0;
 		avgVuMeterNotSp = 0.0;
-		counter = 0;
+		counterVu = 0;
 		counterNotSp = 0;
 
 		state = NOT_TALKING;
@@ -165,88 +179,139 @@ public:
 		numTimesNotified = 0;
 		numTimesTakenFloor = 0;
 	}
+
+	void setGlobalQ(priority_queue<Request, vector<Request>, PriorityModel> * q) {
+		globalQ = q;
+	}
+
+
+	void processRequests() {
+	
+	while(!internalQ.empty()) {
+		Request r = internalQ.top();
+		internalQ.pop();
+		globalQ->push(r);
+        }
+	}
+
+/* 
+* Checks the background noise level of each channel and their speaking energy level
+* Generates an alert if:
+* 1. Background noise is above BG_NOISE_THRESHOLD
+* 2. SNR is low
+* 3. SNR is high
+*/
+string checkSoundLevels() {
+        ostringstream oss;
+
+                // If they're speaking too soft
+                if(counterVu == VU_NUM_UTTERANCES) {
+                        if(avgVuMeter > LOUD) {
+                                // alert you're too loud
+                                oss << "Channel " << channelNum << " is too loud at " << avgVuMeter << endl;
+                                Request* r3 = new Request();
+                                r3->setTimeSent();
+                                r3->setChannel(channelNum-1);
+                                r3->setPriority(1);
+                                r3->setMessage(TTS_TOO_LOUD);
+                                //requestQ.push(*r3);
+                          	internalQ.push(*r3);
+				cout << "size of internalQ is now " << internalQ.size() << endl;
+                        }
+                        else if(avgVuMeter < SOFT) {
+                                // alert you're too soft
+                                oss << "Channel " << channelNum << " is too soft" << endl;
+                                Request* r4 = new Request();
+                                r4->setTimeSent();
+                                r4->setChannel(channelNum-1);
+                                r4->setPriority(1);
+                                r4->setMessage(TTS_TOO_SOFT);
+				internalQ.push(*r4);
+				cout << "size of internalQ is now " << internalQ.size() << endl;
+                        }
+                        avgVuMeter = 0.0;
+                        vuMeter = 0.0;
+                        counterVu = 0;
+                }
+
+                if(energyNotSpeakingCount >= VU_NOTSP_NUM_SAMPLES) {
+                        if(avgNotSpeakingEnergy >= BG_LOUD) {
+                                oss << "Channel " << channelNum << " background noise is too loud at " << avgNotSpeakingEnergy << endl;
+                                Request* r5 = new Request();
+                                r5->setTimeSent();
+                                r5->setChannel(channelNum-1);
+                                r5->setPriority(1);
+                                r5->setMessage(TTS_BG_TOO_LOUD);
+	                        internalQ.push(*r5);
+				cout << "size of internalQ is now " << internalQ.size() << endl;
+			}
+                        totalNotSpeakingEnergy = 0.0;
+                        energyNotSpeakingCount = 0;
+                }
+        return oss.str();
+}
+
 	
 
-	bool Do() //for each buffer
-	{
-		
+	// for each buffer
+	bool Do() {
 		const unsigned stepSize = 1;
 		unsigned int bufferSNS = 0; //speech or no speech
 		unsigned bufferSize = _input.GetAudio().GetBuffer().Size(); //128
 		const CLAM::TData * data = &(_input.GetAudio().GetBuffer()[0]);
 	
 		//Find max in buffer
-		for (unsigned i=0; i<bufferSize; i++) 
-		{
+		for (unsigned i=0; i<bufferSize; i++) {
 			const CLAM::TData & current = data[i];
-			//if(channelNum == 1)
-			//	cout << "Current: " << current << endl;
 			if (current>_max) _max=current;
 			if (current<-_max) _max=-current;
 		}
 		logEnergy = 60 + 20*log(_max);
 		if (logEnergy > 0) { //previously 15 
 			bufferSNS = 1;
-			//avgSpeakingEnergy += logEnergy; //cchien
 			totalSpeakingEnergy += logEnergy;
 			currentSpeakingEnergy = logEnergy;
 			energySpeakingCount++; // used in log energy average
 		}
 		else {
-			//avgNotSpeakingEnergy += logEnergy;
 			totalNotSpeakingEnergy += logEnergy;
 			energyNotSpeakingCount++;
-			//if(channelNum == 1)
-				//cout << "Avg Not Speaking: " << avgVuMeterNotSp << endl;
 		}
 		_bufferCount++;
 		_max = 1e-10;
 
 		//Threshold buffer and add to moving average
-		if (_bufferCount < windowSize)
-		{
-			
+		if (_bufferCount < windowSize) {
 			pData[_bufferCount] = bufferSNS;
-			//cout << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 				
 			total += bufferSNS;
-			//printf("window size is %d, bufferCount is %d, total is %f\n", windowSize, _bufferCount, total);
 			if (windowSize - _bufferCount == 1) {
 				_average = total/(float)windowSize; 
-				//cout << "** setting average! its " << _average << endl;
 			}
  		}
-		else 
-		{	//cout << "pdata[i]: " << pData[_bufferCount % windowSize] << endl; 
+		else {	
 			total -= pData[_bufferCount % windowSize];
 			pData[_bufferCount % windowSize] = bufferSNS;
 			total += bufferSNS;
-			//printf("bufferCount: %d, index: %d, bufferSNS: %d\n", _bufferCount, (_bufferCount % windowSize), bufferSNS);
-			//printf("stepSize: %d, index: %d\n", stepSize, (_bufferCount % windowSize));
 			if (_bufferCount % stepSize == 0) {
 				_average = total/windowSize; 
-				//cout << "logEnergy: " << logEnergy << ", average: " << _average << ", total: " << total << endl;
 				if (_average >= 0.5) windowSNS = 1;
 				else windowSNS = 0;
 			}
 		}
 
 		if (windowSNS<1 && IS_NOT_TALKING(state)) {
-			//cout << "not talking! state is " << state << endl;
 			state = NOT_TALKING;
 		}
 		else if (windowSNS==1 && IS_NOT_TALKING(state)) {
-			//cout << "** started talking! " << getPName() << " state is " << state << endl;
 			gettimeofday(&_starttime,0x0);				
 			state = START_TALKING;
 			newUtterance = true;
 			numUtterances++;
 		}
 		else if (windowSNS==1 && (IS_START_TALKING(state) || (IS_STILL_TALKING(state)))) {		
-			//cout << "** still talking! state is " << state << endl;
 			state = STILL_TALKING;
 		}
 		else if (windowSNS<1 && IS_STILL_TALKING(state)) {
-			//cout << "** stopped talking! **";
 			state = STOP_TALKING;
 			gettimeofday(&_endtime,0x0);				
 			timeval_subtract(&_timediff, &_endtime, &_starttime);
@@ -260,13 +325,11 @@ public:
 			//printSpeakerStats();
 			//sendSpeakerStats();			
 			writeSpeakerStats();
-			//writeVolStats();
 			
 			diffTime = 0.0;
 			interruptLogged = false;
 		}
 		else if (windowSNS<1 && IS_STOP_TALKING(state)) {
-			//cout << "stopped talking!\n";
 			state = NOT_TALKING;
 			newUtterance = false;
 			calculateSp();
@@ -274,12 +337,16 @@ public:
 
 		calculateBg();
 
-		//cout << "\t windowSNS: " << windowSNS << ", state: " << hex << state << endl;
+		checkSoundLevels();
+
 		gettimeofday(&_endtime,0x0);		
 		timeval_subtract(&_timediff, &_endtime, &_sessionStart);
 		sessionTime = (double)_timediff.tv_sec + (double)0.001*_timediff.tv_usec/1000; //time in sec.ms			
 
 		_input.Consume();
+
+		processRequests();
+
 		return true;
 	}
 
@@ -294,8 +361,8 @@ public:
 		energySpeakingCount = 0;
 	
 		vuMeter += avgSpeakingEnergy;
-		counter++;
-		avgVuMeter = vuMeter / counter;
+		counterVu++;
+		avgVuMeter = vuMeter / counterVu;
 		if(channelNum == 1)
 			cout << "avgVuMeter is " << avgVuMeter << endl;
 	}
@@ -305,25 +372,9 @@ public:
 	*/
 	void calculateBg() {
 		avgNotSpeakingEnergy = totalNotSpeakingEnergy / energyNotSpeakingCount;
-		//counterNotSp++;
-
-		//cout << "energyNotSpeakingCount is " << energyNotSpeakingCount << endl;
-		//if(energyNotSpeakingCount >= VU_NOTSP_NUM_SAMPLES) {
-			//cout << "hi" << endl;
-			//totalNotSpeakingEnergy = 0.0;
-			//energyNotSpeakingCount = 0;
-			//counterNotSp = 0;
-			//avgNotSpeakingEnergy = 0.0;
-		//}
-		//cout << "Avg BG Noise is " << avgVuMeterNotSp << endl;
-		//cout << "Avg BG Noise is " << avgNotSpeakingEnergy << endl;
 	}
 
-	int timeval_subtract (
-     		struct timeval *result,
-		struct timeval *x, 
-		struct timeval *y)
-	{
+	int timeval_subtract ( struct timeval *result, struct timeval *x, struct timeval *y) {
 		struct timeval temp = *y;
   		/* Perform the carry for the later subtraction by updating y. */
   		if (x->tv_usec < y->tv_usec) {
@@ -349,14 +400,14 @@ public:
 	}
 
 	
-	void SetPName(string d)
-	{
+	void SetPName(string d) {
 		_name = d;
 	}
-	const char* GetClassName() const
-	{
+
+	const char* GetClassName() const {
 		return "Channelizer";
 	}
+
 	string getPName() {
 		return _name;
 	}
@@ -485,22 +536,6 @@ public:
 
 		numTimesNotified = 0;
 	}
-
-// NOT USED
-        //cchien
-        // TODO: update this function, or remove completely since we don't use it
-        void writeVolStats() {
-                ofstream volFile;
-                volFile.open("VolumeData.log", ios::app);
-                float energySpeakingAvg = avgSpeakingEnergy / energySpeakingCount;
-                float energyNotSpeakingAvg = avgNotSpeakingEnergy / energyNotSpeakingCount;
-                float signalToNoise = fabs((energySpeakingAvg - energyNotSpeakingAvg) / energyNotSpeakingAvg);
-                volFile << "Speaking\tNot Speaking\tS-to-R\n";
-                cout << "Speaking\tNot Speaking\tS-to-R\n";
-                volFile << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
-                cout << energySpeakingAvg << "\t" << energyNotSpeakingAvg << "\t" << signalToNoise << "\n";
-                volFile.close();
-        }
 
 };
 

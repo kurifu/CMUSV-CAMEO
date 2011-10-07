@@ -11,7 +11,7 @@ using namespace std;
 class Request {
         public:
                 void setTimeSent();
-		struct timeval getTimeSent();
+		struct tm* getTimeSent();
 		void setChannel(int inChannelNum);
 		int getChannel() const;
 		void setPriority(int inPriority);
@@ -20,7 +20,8 @@ class Request {
 		string getMessage() const;
         private:
                 int priority;
-                struct timeval timeSent;
+                //struct timeval timeSent;
+		struct tm* timeSent;
                 int channel;
 		string message;
 };
