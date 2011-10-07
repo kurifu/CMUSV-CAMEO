@@ -34,6 +34,10 @@
 /* Festival */
 #include "/usr/include/festival/festival.h"
 
+#include "request.hxx"
+#include <queue>
+#include "PriorityModel.hxx"
+
 using namespace std;
 
 /*************
@@ -86,6 +90,12 @@ bool isOverlapping = false;
 
 struct timeval _currTime, _beepTimeDiff, _overlapStartTime, _dormancyInterval, _dormancyIntervalHolder;
 double diffTime = 0.0;
+
+/**************************
+* Reinforcement Scheduler *
+**************************/
+// Priority queue of Request objects, note that PriorityModel is the function object needed for comparison defined in PriorityModel.hxx
+static priority_queue<Request, vector<Request>, PriorityModel> requestQ;
 
 /***********
 * Festival *
@@ -260,6 +270,7 @@ void* connect(void* portno) {
                 close(mySocketFD);
         }
 	//LISTEN_PORT++;
+	pthread_exit(NULL);
 }
 
 /**
@@ -267,7 +278,7 @@ void* connect(void* portno) {
 */
 void runLoginManager() {
         pthread_t connect1, connect2, connect3, connect4;
-        char* dummyMsg = "return msg?";
+        //char* dummyMsg = "return msg?";
 	int port1 = 4444;
 	int port2 = 4445;
 	int port3 = 4446;
@@ -381,12 +392,12 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 /**
 * If channel is the maximum number of channels, send TTS to every channel, otherwise only send to the channel specified by arg 'channel'
 */
-void textToSpeech(char* msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+void textToSpeech(string msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 	EST_Wave wave;
 
 	CLAM::Processing& tts = network.GetProcessing("TTS");
-
-	festival_text_to_wave(msg, wave);
+	festival_text_to_wave(msg.c_str(), wave);
+	//festival_text_to_wave(msg, wave);
         wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
 	if(channel == NUMCHANNELS) {
@@ -427,14 +438,26 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 		}
 		cout << "before dormancy" << endl;
 		flush(cout);
-		textToSpeech("Your thoughts ?", channelToAlert, channels, mixers);
+		//textToSpeech("Your thoughts ?", channelToAlert, channels, mixers);
+		Request* r2 = new Request();
+		//r2->setTimeSent();
+		r2->setChannel(channelToAlert);
+		r2->setPriority(10);
+		r2->setMessage("Your thoughts ?");
+		requestQ.push(*r2);
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
-
+	
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
+                        //textToSpeech("Take turns", i, channels, mixers);
+			Request* r1 = new Request();
+			//r1->setTimeSent();
+			r1->setChannel(i);
+			r1->setPriority(1);
+			r1->setMessage("Take turns");
+			requestQ.push(*r1);
 			channels[i]->isGonnaGetBeeped = false;
-                        textToSpeech("Take turns", i, channels, mixers);
                 }
         }
 
@@ -443,14 +466,18 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 // Looks at each Speaker State, updates each channel's Floor Action State
 void updateFloorActions(CLAM::Channelizer* channels[]) {
 	for(int i = 0; i < NUMCHANNELS; i++) {
-		if(IS_START_TALKING(channels[i]->state))
+		if(IS_START_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = TAKE_FLOOR;
-		else if (IS_STILL_TALKING(channels[i]->state))
+		}
+		else if (IS_STILL_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = HOLD_FLOOR;
-		else if (IS_STOP_TALKING(channels[i]->state))
+		}
+		else if (IS_STOP_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = RELEASE_FLOOR;
-		else if (IS_NOT_TALKING(channels[i]->state))
+		}
+		else if (IS_NOT_TALKING(channels[i]->state)) {
 			channels[i]->floorAction = NO_FLOOR;
+		}
 	}
 }
 
@@ -575,10 +602,9 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			}
 		}
 		// When someone's done talking, play their BG track
-		else if (0 == numSpeakers) {
+		/*else if (0 == numSpeakers) {
 			channelThatHasFloor = -1;
-	
-/*			if(checkIfOn(channels)) {
+			if(checkIfOn(channels)) {
 			//if(SUPERVISOR_ON) {
 				for(int i = 0; i < NUMCHANNELS; i++) {
 					if(IS_STOP_TALKING(channels[i]->state)) {
@@ -606,14 +632,13 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					
 	       	 				CLAM::Processing& targetTrack = network.GetProcessing(track);
 	        				CLAM::SendFloatToInControl(targetTrack, "Seek", 0.0);
-
 						//flush(cout);
 						//cout << "\nTarget track is " << targetTrack << ", target seek is " << targetSeek << endl << endl;
 						//flush(cout);
 					}
 				}
-			}*/
-		}
+			}
+		}*/
 	}
 
 	return outputMsg;
@@ -672,13 +697,25 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			if(channels[i]->avgVuMeter > LOUD) {
 				// alert you're too loud
 				oss << "Channel " << i << " is too loud at " << channels[i]->avgVuMeter << endl;
-	 	               	textToSpeech("You're too loud", i, channels, mixers);
+	 	               	//textToSpeech("You're too loud", i, channels, mixers);
+				Request* r3 = new Request();
+				//r3->setTimeSent();
+				r3->setChannel(i);
+				r3->setPriority(1);
+				r3->setMessage("You're too loud");
+				requestQ.push(*r3);
 
 			}
 			else if(channels[i]->avgVuMeter < SOFT) {
 				// alert you're too soft
 				oss << "Channel " << i << " is too soft" << endl;
-		                textToSpeech("You're too soft", i, channels, mixers);
+		                //textToSpeech("You're too soft", i, channels, mixers);
+				Request* r4 = new Request();
+				//r4->setTimeSent();
+				r4->setChannel(i);
+				r4->setPriority(1);
+				r4->setMessage("You're too soft");
+				requestQ.push(*r4);
 
 			}
 			channels[i]->avgVuMeter = 0.0;
@@ -693,7 +730,13 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		if(channels[i]->energyNotSpeakingCount >= channels[i]->VU_NOTSP_NUM_SAMPLES) {
 			if(channels[i]->avgNotSpeakingEnergy >= BG_LOUD) {
 				oss << "Channel " << i << " background noise is too loud at " << channels[i]->avgNotSpeakingEnergy << endl;
-		                textToSpeech("Background noise too loud", NUMCHANNELS, channels, mixers);
+		                //textToSpeech("Background noise too loud", NUMCHANNELS, channels, mixers);
+				Request* r5 = new Request();
+				//r5->setTimeSent();
+				r5->setChannel(i);
+				r5->setPriority(1);
+				r5->setMessage("Background noise too loud");
+				requestQ.push(*r5);
 			}
 			channels[i]->totalNotSpeakingEnergy = 0.0;
 			channels[i]->energyNotSpeakingCount = 0;
@@ -702,16 +745,29 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	return oss.str();
 }
 
+
+
+//TODO
+void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+        while(!requestQ.empty()) {
+                cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << endl;
+		string msg = (string)(requestQ.top()).getMessage();
+		cout << "messgae: " << msg << endl; 
+        	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
+		//textToSpeech("Take turns", 0, channels, mixers);		
+		requestQ.pop();
+        }
+}
+
 /**
 * Main steps the Supervisor takes
 */
+
 string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Processing* mixers[]) {
 	string notifyMsg = "";
-	
-	// See who started talking, play their track
-	playBgTones(channels, mixers);
 
-	notifyMsg = checkSoundLevels(channels, mixers);
+	// Process any Request objects we have
+	processRequests(channels, mixers);
 
 	// Calculates the activity level for each channel
 	calculateDominance(channels);
@@ -719,11 +775,17 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	// If Supervisor is on, send out alerts to dominant channels
 	if(checkIfOn(channels))
 		adjustAlerts(channels, mixers);
+	
+	// See who started talking, play their track
+	playBgTones(channels, mixers);
+
+	notifyMsg = checkSoundLevels(channels, mixers);
 
 	updateFloorActions(channels);
 
 	// Figure out if we have any overlaps or barge-ins
 	notifyMsg += updateFloorState(channels, mixers);
+
 
 	if(("" != notifyMsg) && (prevMsg != notifyMsg)) {
 		cout << notifyMsg << endl;
@@ -755,7 +817,21 @@ int main( int argc, char* argv[] ) {
 
 	try {
 
+/*Request r1;
+r1.setPriority(10);
+Request r2;
+r2.setPriority(1);
+Request r3;
+r3.setPriority(7);
+requestQ.push(r3);
+requestQ.push(r2);
+requestQ.push(r1);
+while(!requestQ.empty()) {
+	cout << requestQ.top().getPriority() << endl;
+	requestQ.pop();
+}
 
+exit(1);*/
 
 /*******************************************************************/
 /*-----------------------------SETUP-------------------------------*/
@@ -798,7 +874,9 @@ int main( int argc, char* argv[] ) {
 			CLAM::SendFloatToInControl(*(amps[i]), "Gain", 0.5);
 		}
 
+
 		CLAM::Processing& generator = network.GetProcessing("Generator");
+
 
 		CLAM::Processing& mic = network.GetProcessing("AudioSource");
 		CLAM::Channelizer& myp1 = (CLAM::Channelizer&) network.GetProcessing("Channelizer");
@@ -815,15 +893,14 @@ int main( int argc, char* argv[] ) {
 		myp2.channelNum = 2;
 		myp3.channelNum = 3;
 		myp4.channelNum = 4;
-
 		// Data Logging Stuff
 		string filePath = argv[1];
 		filePath = "/home/rahul/Multiparty/Projects/multipartyspeech/logs/" + filePath;
 		logFilePath = filePath;
-		myp1.setFileName(filePath);
-		myp2.setFileName(filePath);
-		myp3.setFileName(filePath);
-		myp4.setFileName(filePath);
+/*		myp1.setFileName(logFilePath);
+		myp2.setFileName(logFilePath);
+		myp3.setFileName(logFilePath);
+		myp4.setFileName(logFilePath);*/
 		ofstream logFile;
 		logFile.open(filePath.c_str(), ios::app);
 		logFile << "New Test Started At " << myp1.getDate() << "\n";
@@ -836,7 +913,6 @@ int main( int argc, char* argv[] ) {
 		myp3.GetInPort("Input").SetSize(winSize);	
 		myp4.GetInPort("Input").SetSize(winSize);	
 		
-
 		//JACK CODE
          	//jack_client_t * jackClient;
          	string jackClientName;
@@ -878,15 +954,37 @@ int main( int argc, char* argv[] ) {
 		gettimeofday(&_currTime, 0x0);
 		gettimeofday(&_beepTimeDiff, 0x0);
 		gettimeofday(&_dormancyInterval, 0x0);
-
 		runLoginManager();
 
    		/*int heap_size = 21000000;  // default scheme heap size
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;*/
 
+
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
+
+
+/*while(1) {
+ 	textToSpeech("Any thoughts ?", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Your thoughts ?", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Take turns", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Speak up", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Any thoughts ?", 0, channels, mixers);
+	sleep(2);
+ 	textToSpeech("Any ideas ?", 0, channels, mixers);
+	sleep(2);
+}*/
+
+			//Request* r1 = new Request();
+                        //r1->setTimeSent();
+                        //r1->setChannel(0);
+                        //r1->setPriority(10);
+                        //r1->setMessage("Take turns");
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
