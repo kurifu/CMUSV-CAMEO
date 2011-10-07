@@ -85,7 +85,7 @@ public:
 	float avgVuMeterNotSp;
 	int counter;
 	int counterNotSp;
-	const static int VU_NUM_UTTERANCES = 5;
+	const static int VU_NUM_UTTERANCES = 1;
 	const static int VU_NOTSP_NUM_SAMPLES = 500;
 	// Statistics
 	int numTimesTakenFloor;

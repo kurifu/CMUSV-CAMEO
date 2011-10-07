@@ -105,6 +105,11 @@ const static double TTS_GAIN = 1.5;
 const int heap_size = 21000000;  // default scheme heap size
 const int load_init_files = 1; // we want the festival init files loaded
 const int worked = 0;
+const static string TTS_TOO_SOFT= "You're too Soft";
+const static string TTS_TOO_LOUD = "You're too Loud";
+const static string TTS_BG_TOO_LOUD = "Background noise too loud";
+const static string TTS_DORMANCY = "Your thoughts ?";
+const static string TTS_DOMINANCE = "Take turns";
 
 /********************
 * Background Tracks *
@@ -436,14 +441,12 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 				channelToAlert = i;
 			}
 		}
-		cout << "before dormancy" << endl;
-		flush(cout);
 		//textToSpeech("Your thoughts ?", channelToAlert, channels, mixers);
 		Request* r2 = new Request();
 		//r2->setTimeSent();
 		r2->setChannel(channelToAlert);
 		r2->setPriority(10);
-		r2->setMessage("Your thoughts ?");
+		r2->setMessage(TTS_DORMANCY);
 		requestQ.push(*r2);
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
@@ -455,7 +458,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			//r1->setTimeSent();
 			r1->setChannel(i);
 			r1->setPriority(1);
-			r1->setMessage("Take turns");
+			r1->setMessage(TTS_DOMINANCE);
 			requestQ.push(*r1);
 			channels[i]->isGonnaGetBeeped = false;
                 }
@@ -702,7 +705,7 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				//r3->setTimeSent();
 				r3->setChannel(i);
 				r3->setPriority(1);
-				r3->setMessage("You're too loud");
+				r3->setMessage(TTS_TOO_LOUD);
 				requestQ.push(*r3);
 
 			}
@@ -714,7 +717,7 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				//r4->setTimeSent();
 				r4->setChannel(i);
 				r4->setPriority(1);
-				r4->setMessage("You're too soft");
+				r4->setMessage(TTS_TOO_SOFT);
 				requestQ.push(*r4);
 
 			}
@@ -735,7 +738,7 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				//r5->setTimeSent();
 				r5->setChannel(i);
 				r5->setPriority(1);
-				r5->setMessage("Background noise too loud");
+				r5->setMessage(TTS_BG_TOO_LOUD);
 				requestQ.push(*r5);
 			}
 			channels[i]->totalNotSpeakingEnergy = 0.0;
