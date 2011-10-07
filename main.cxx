@@ -430,7 +430,7 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 		textToSpeech("Your thoughts ?", channelToAlert, channels, mixers);
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
-
+	
         for(int i = 0; i < NUMCHANNELS; i++) {
 		if(channels[i]->isGonnaGetBeeped) {
                         //textToSpeech("Take turns", i, channels, mixers);
@@ -439,7 +439,9 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			r1->setChannel(i);
 			r1->setPriority(10);
 			r1->setMessage("Take turns");
+			requestQ.push(*r1);
 			channels[i]->isGonnaGetBeeped = false;
+			
                 }
         }
 
@@ -585,7 +587,7 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 			}
 		}
 		// When someone's done talking, play their BG track
-		else if (0 == numSpeakers) {
+		/*else if (0 == numSpeakers) {
 			channelThatHasFloor = -1;
 
 			if(checkIfOn(channels)) {
@@ -618,28 +620,30 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					}
 				}
 			}
-		}
+		}*/
 	}
 
 	return outputMsg;
 }
 
 //TODO
-/*void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
         while(!requestQ.empty()) {
                 cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << endl;
 		string msg = (string)(requestQ.top()).getMessage();
+		cout << "messgae: " << msg << endl; 
         	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
+		//textToSpeech("Take turns", 0, channels, mixers);		
 		requestQ.pop();
         }
-}*/
+}
 
 
 string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Processing* mixers[]) {
 	string notifyMsg = "";
 
 	// Process any Request objects we have
-	//processRequests(channels, mixers);
+	processRequests(channels, mixers);
 	
 	// Calculates the activity level for each channel
 	calculateDominance(channels);
@@ -841,7 +845,7 @@ exit(1);*/
     		int load_init_files = 1; // we want the festival init files loaded
 
     		festival_initialize(load_init_files,heap_size);
-	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
+	        //textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
 
 /*while(1) {
  	textToSpeech("Any thoughts ?", 0, channels, mixers);

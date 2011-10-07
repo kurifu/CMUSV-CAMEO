@@ -8,10 +8,10 @@
 */
 class PriorityModel {
 	public:
-	bool operator()(const Request& a, const Request& b) const {
-		if(a.getPriority() > b.getPriority())
-			return false;
-		return true;
+	bool operator()(const Request& a, const Request& b) const { //a has higher priority (higher number)
+		if(a.getPriority() < b.getPriority())
+			return true;
+		return false;
 	}
 };
 #endif
