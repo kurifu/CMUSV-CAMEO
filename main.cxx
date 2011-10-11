@@ -407,7 +407,7 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 * If channel is the maximum number of channels, send TTS to every channel, otherwise only send to the channel specified by arg 'channel'
 */
 void textToSpeech(string msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
-	cout << "Inside textToSpeech, message is " << msg <<  endl;
+//	cout << "Inside textToSpeech, message is " << msg <<  endl;
 	EST_Wave wave;
 
 	CLAM::Processing& tts = network.GetProcessing("TTS");
