@@ -87,6 +87,8 @@ const static double DORMANCY_PERCENTAGE = 30;
 // Number of seconds before we encourage the most dormant participant to speak up
 const static double DORMANCY_INTERVAL = 60;
 
+const static double MIN_ALERT_INTERVAL = 10.0;
+
 double currOverlapLength = 0;
 bool isOverlapping = false;
 
@@ -145,9 +147,10 @@ int checkIfOn(CLAM::Channelizer* channels[] ) {
 
         ofstream logFile;
         logFile.open(logFilePath.c_str(), ios::app);
+
         if(SUPERVISOR_ON != data) {
                 cout << "Supervisor is now ";
-                (data) ? cout << "on!" << endl : cout << "off!" << endl;
+                (data == 1) ? cout << "on!" << endl : cout << "off!" << endl;
 
 		for(int i = 0; i < NUMCHANNELS; i++) {
 			double avgSpkLen = channels[i]->totalSpeakingLength / channels[i]->numTimesTakenFloor;
@@ -156,7 +159,7 @@ int checkIfOn(CLAM::Channelizer* channels[] ) {
 
 		logFile << endl << endl;
                 logFile << "Supervisor turned";
-		(data) ? logFile << " ON " : logFile << " OFF " << endl;
+		(data == 1) ? logFile << " ON " << endl : logFile << " OFF " << endl;
                 logFile << "CurrTime\t\tChannelName\tSpeaking Length\tTSL\t\tTSLNoU\t\tTSI\tDom%\t\tIsDom\tAvgSpEnergy\tAvgNSpEnergy\t#Spoken\t#Notified\tTotalTime\n";
                 SUPERVISOR_ON = data;
 
@@ -167,7 +170,7 @@ int checkIfOn(CLAM::Channelizer* channels[] ) {
 
 	// If the 2nd line in the config.txt file changes, calculate all stats up until now and 
 	inputFile >> data2;
-	if(data2.compare(LOG_NOTE)) {
+	if(data2.compare(LOG_NOTE) != 0) {
 		logFile << data2 << endl;
 		LOG_NOTE = data2;
 	}
@@ -246,7 +249,7 @@ void* connect(void* portno) {
 		else {
 	                char* ip = getSocketPeerIp(clientSocketFD);
                         CURRNUMCHANNELS++;
-                        string command = "jack_netsource -H " + (string)ip + " &";
+                        string command = "jack_netsource -H " + (string)ip + " 2> /dev/null &";
                         system(command.c_str());
 
 			Request *r = new Request();
@@ -284,7 +287,7 @@ void* connect(void* portno) {
                 close(mySocketFD);
         }
 	//LISTEN_PORT++;
-	pthread_exit(NULL);
+	//pthread_exit(NULL);
 }
 
 /**
@@ -435,9 +438,45 @@ void textToSpeech(string msg, int channel, CLAM::Channelizer* channels[], CLAM::
 	CLAM::SendFloatToInControl(tts, "Seek", 0.0);
 }
 
+void dominanceCondition(CLAM::Channelizer* channels[]) {
+	for(int i = 0; i < NUMCHANNELS; i++) {
+                if(channels[i]->isGonnaGetBeeped) {
+                        Request* r1 = new Request();
+                        // TTS Dominance alert
+                        r1->setTimeSent();
+                        r1->setChannel(i);
+                        r1->setPriority(1);
+                        r1->setMessage(TTS_DOMINANCE);
+                        requestQ.push(*r1);
+                        channels[i]->isGonnaGetBeeped = false;
+                }
+        }
+}
+
+void checkOverlap(CLAM::Channelizer* channels[]) {
+        gettimeofday(&_currTime, 0x0);
+        channels[channelThatHasFloor]->timeval_subtract(&_beepTimeDiff, &_currTime, &_overlapStartTime);
+        diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+        currOverlapLength = diffTime;
+        if(currOverlapLength >= OVERLAP_LENGTH && isOverlapping) {
+                cout << "overlapped for more than 2 sec" << endl;
+
+                currOverlapLength = 0.0;
+                isOverlapping = false;  // may not be a good var name
+
+                // Mark everyone who is talking that doesn't have the floor
+                for (int i = 0; i < NUMCHANNELS; i++) {
+                        // Dominant Case
+                        if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
+                                channels[i]->isGonnaGetBeeped = true;
+                        }
+                }
+        }
+}
+
 // Beeps any channels that have been overlapping for at least 5 seconds and do not have the floor
 // Stops beeping after 3 seconds and starts all over again
-inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
+inline void processFlags(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 
 	int channelToAlert = -1;
 	int lowestActivityLevel = 100;
@@ -451,30 +490,19 @@ inline void adjustAlerts(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 				channelToAlert = i;
 			}
 		}
-		// TTS Dormancy alert
-		Request* r2 = new Request();
-		r2->setTimeSent();
-		r2->setChannel(channelToAlert);
-		r2->setPriority(10);
-		r2->setMessage(TTS_DORMANCY);
-		requestQ.push(*r2);
+
+		if(channelToAlert != -1) {
+			// TTS Dormancy alert
+			Request* r2 = new Request();
+			r2->setTimeSent();
+			r2->setChannel(channelToAlert);
+			r2->setPriority(10);
+			r2->setMessage(TTS_DORMANCY);
+			requestQ.push(*r2);
+		}
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
-	
-        for(int i = 0; i < NUMCHANNELS; i++) {
-//TODO
-		if(channels[i]->isGonnaGetBeeped) {
-			Request* r1 = new Request();
-			// TTS Dominance alert
-			r1->setTimeSent();
-			r1->setChannel(i);
-			r1->setPriority(1);
-			r1->setMessage(TTS_DOMINANCE);
-			requestQ.push(*r1);
-			channels[i]->isGonnaGetBeeped = false;
-                }
-        }
-
+	dominanceCondition(channels);
 }
 
 // Looks at each Speaker State, updates each channel's Floor Action State
@@ -505,24 +533,6 @@ inline int findNumSpeakers(CLAM::Channelizer* channels[]) {
 	return speakers;
 }
 
-
-
-inline void giveFloorToLeastDominantGuy(CLAM::Channelizer* channels[] ) {
-	//cout << "giveFloorToLeastDominantGuy" << endl;
-	short channelThatIsLeastDominant = channelThatHasFloor;
-	ostringstream oss;
-
-	for(int i = 0; i < NUMCHANNELS; i++) {
-		// If you're talking, we'll look at your activity levels, if you haven't been active, you get floor
-		if(IS_TAKE_FLOOR(channels[i]->floorAction) || IS_HOLD_FLOOR(channels[i]->floorAction)) {
-			if(channels[i]->totalActivityLevel < channels[channelThatIsLeastDominant]->totalActivityLevel) {
-				channelThatIsLeastDominant = i;
-			}
-		}
-	}
-}
-
-
 // Looks at each Floor Action, updates the global Floor State
 string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 	string outputMsg;
@@ -533,7 +543,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	// Case 1: No one has floor, only 1 person talking
 	// 	   Figure out who to give it to
 	if(FLOOR_FREE) {
-		//cout << "Floor is free!" << endl;
 		int numWhoWantFloor = 0;
 		short channelWhoWantsFloor = -1;
 		for(int i = 0; i < NUMCHANNELS; i++) {
@@ -567,7 +576,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 	}
 	// Case 2: Someone has floor; check everyone else's status before updating anything
 	else {
-		//cout << "Floor is NOT free!" << endl;
 		// Case 2.1: Only 1 guy talking and holding the floor, most common case, let him continue
 		if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 == numSpeakers)) {
 			isOverlapping = false;
@@ -577,7 +585,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 		// 	If there is an overlap for longer than OVERLAP_LENGTH, mark everyone who does not 
 		// 	have the floor and is talking; whoever is marked will get beeped
 		else if(IS_HOLD_FLOOR(channels[channelThatHasFloor]->floorAction) && (1 != numSpeakers)) {
-			//cout << "BARGE IN! " << endl;
 			for (int i = 0; i < NUMCHANNELS; i++) {
 				if((i != channelThatHasFloor) && (IS_HOLD_FLOOR(channels[i]->floorAction))) {
 					// Only log if we haven't logged yet; this gets reset automatically by the Channelizer
@@ -588,33 +595,12 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				}
 			}
 
-			//if(channels[channelThatHasFloor]->isDominant)
-			//	outputMsg = giveFloorToLeastDominantGuy(channels);
-
 			if(!isOverlapping) {
 				gettimeofday(&_overlapStartTime, 0x0);
 				isOverlapping = true;
 			}
 
-			gettimeofday(&_currTime, 0x0);
-			channels[channelThatHasFloor]->timeval_subtract(&_beepTimeDiff, &_currTime, &_overlapStartTime);
-			diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
-			currOverlapLength = diffTime;
-			if(currOverlapLength >= OVERLAP_LENGTH && isOverlapping) {
-				cout << "overlapped for more than 2 sec" << endl;
-				
-				currOverlapLength = 0.0;
-				isOverlapping = false;	// may not be a good var name
-
-				// Mark everyone who is talking that doesn't have the floor
-				for (int i = 0; i < NUMCHANNELS; i++) {
-					// Dominant Case
-					if(((i == channelThatHasFloor) && (channels[i]->isDominant) ) || ((channels[i]->isDominant) && (i != channelThatHasFloor))) {
-						channels[i]->isGonnaGetBeeped = true;
-//TODO
-					}
-				}
-			}
+			checkOverlap(channels);
 		}
 		// When someone's done talking, play their BG track
 		/*else if (0 == numSpeakers) {
@@ -763,16 +749,69 @@ string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 
 
 
-//TODO
 void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
-        while(!requestQ.empty()) {
-                cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
-		string msg = (string)(requestQ.top()).getMessage();
-		cout << "\tmessgae: " << msg << endl; 
-        	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
-		//textToSpeech("Take turns", 0, channels, mixers);		
-		requestQ.pop();
+	queue<Request> q;
+
+// find what channel you're alerting
+                //Request r = requestQ.top();
+               /* gettimeofday(&_currTime, 0x0);
+                channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[0]->timeOfLastAlert );
+                diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+                cout << "diffTime: " << diffTime << endl;
+*/
+
+        //while(!requestQ.empty()) {
+	for(int i = 0; i < requestQ.size(); i++) {
+
+		// find what channel you're alerting
+		Request r = requestQ.top();
+		gettimeofday(&_currTime, 0x0);
+		channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[r.getChannel()]->timeOfLastAlert );
+        	diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+		cout << "diffTime: " << diffTime << endl;
+
+		channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[r.getChannel()]->_sessionStart);
+                double tempTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+
+		if(diffTime >= MIN_ALERT_INTERVAL || tempTime < 10.0) {
+	       	        cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
+			string msg = (string)(requestQ.top()).getMessage();
+			cout << "\tmessgae: " << msg << endl; 
+	       	 	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
+
+			if(requestQ.top().getChannel() != NUMCHANNELS) {
+				channels[requestQ.top().getChannel()]->lastRequest = requestQ.top().getMessage();
+				//textToSpeech("Take turns", 0, channels, mixers);		
+
+				if(requestQ.top().getChannel() == NUMCHANNELS) {
+					for(int i = 0; i < NUMCHANNELS; i++) {
+						gettimeofday(&channels[i]->timeOfLastAlert, 0x0);
+					}
+				}
+				else {
+       		                         gettimeofday(&channels[r.getChannel()]->timeOfLastAlert, 0x0);
+				}
+			}
+
+			requestQ.pop();
+		}
+		else {
+			if(requestQ.top().getMessage().compare(channels[requestQ.top().getChannel()]->lastRequest) == 0) {
+				cout << "Popping a request from the global Q because channel " << requestQ.top().getChannel() << " was already alerted this request" << endl;
+				requestQ.pop();
+			}
+			else {
+				cout << "delaying a Request for channel " << requestQ.top().getChannel() << endl;
+				q.push(requestQ.top());
+				requestQ.pop();
+			}
+		}
         }
+
+	while(!q.empty()) {
+		requestQ.push(q.front());
+		q.pop();
+	}
 }
 
 /**
@@ -783,14 +822,15 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	string notifyMsg = "";
 
 	// Process any Request objects we have
-	processRequests(channels, mixers);
+	if(checkIfOn(channels))
+		processRequests(channels, mixers);
 
 	// Calculates the activity level for each channel
 	calculateDominance(channels);
 
 	// If Supervisor is on, send out alerts to dominant channels
 	if(checkIfOn(channels))
-		adjustAlerts(channels, mixers);
+		processFlags(channels, mixers);
 	
 	// See who started talking, play their track
 	playBgTones(channels, mixers);
@@ -914,14 +954,20 @@ exit(1);*/
 		myp2.channelNum = 2;
 		myp3.channelNum = 3;
 		myp4.channelNum = 4;
+
+		gettimeofday(&myp1.timeOfLastAlert, 0x0);
+		gettimeofday(&myp2.timeOfLastAlert, 0x0);
+		gettimeofday(&myp3.timeOfLastAlert, 0x0);
+		gettimeofday(&myp4.timeOfLastAlert, 0x0);
+
 		// Data Logging Stuff
 		string filePath = argv[1];
 		filePath = "/home/rahul/Multiparty/Projects/multipartyspeech/logs/" + filePath;
 		logFilePath = filePath;
-/*		myp1.setFileName(logFilePath);
+		myp1.setFileName(logFilePath);
 		myp2.setFileName(logFilePath);
 		myp3.setFileName(logFilePath);
-		myp4.setFileName(logFilePath);*/
+		myp4.setFileName(logFilePath);
 		ofstream logFile;
 		logFile.open(filePath.c_str(), ios::app);
 		logFile << "New Test Started At " << myp1.getDate() << "\n";

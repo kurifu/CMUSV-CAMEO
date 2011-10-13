@@ -10,7 +10,6 @@ void Request::setTimeSent() {
         time(&rawtime);
         timeSent = localtime(&rawtime);
         mktime(timeSent);
-	cout << "Time Sent: " << timeSent->tm_hour << ":" << timeSent->tm_min << ":" << timeSent->tm_sec << endl;
 }
 
 struct tm* Request::getTimeSent() {
