@@ -87,7 +87,7 @@ const static double DORMANCY_PERCENTAGE = 30;
 // Number of seconds before we encourage the most dormant participant to speak up
 const static double DORMANCY_INTERVAL = 60;
 
-const static double MIN_ALERT_INTERVAL = 10.0;
+const static double MIN_ALERT_INTERVAL = 2.0;
 
 double currOverlapLength = 0;
 bool isOverlapping = false;
@@ -104,6 +104,7 @@ static priority_queue<Request, vector<Request>, PriorityModel> requestQ;
 /***********
 * Festival *
 ***********/
+const static string TTS_ENTRY = "Someone entered";
 const static string TTS_GAIN_PORT = "Gain 4";
 const static double TTS_GAIN = 1.5;
 const int heap_size = 21000000;  // default scheme heap size
@@ -177,6 +178,7 @@ int checkIfOn(CLAM::Channelizer* channels[] ) {
         logFile.close();
 
         inputFile.close();
+
         return SUPERVISOR_ON;
 }
 
@@ -256,7 +258,7 @@ void* connect(void* portno) {
 			r->setTimeSent();
 			r->setChannel(NUMCHANNELS);
 			r->setPriority(4);
-			r->setMessage("Someone entered");
+			r->setMessage(TTS_ENTRY);
 			requestQ.push(*r);
 
 			sleep(1);
@@ -410,12 +412,10 @@ inline void playTracks(CLAM::Channelizer* channels[], CLAM::Processing* tracks[]
 * If channel is the maximum number of channels, send TTS to every channel, otherwise only send to the channel specified by arg 'channel'
 */
 void textToSpeech(string msg, int channel, CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
-//	cout << "Inside textToSpeech, message is " << msg <<  endl;
 	EST_Wave wave;
 
 	CLAM::Processing& tts = network.GetProcessing("TTS");
 	festival_text_to_wave(msg.c_str(), wave);
-	//festival_text_to_wave(msg, wave);
         wave.save("/home/rahul/Multiparty/Projects/multipartyspeech/wave.wav","riff");
 
 	if(channel == NUMCHANNELS) {
@@ -474,6 +474,8 @@ void checkOverlap(CLAM::Channelizer* channels[]) {
         }
 }
 
+
+
 // Beeps any channels that have been overlapping for at least 5 seconds and do not have the floor
 // Stops beeping after 3 seconds and starts all over again
 inline void processFlags(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
@@ -491,7 +493,7 @@ inline void processFlags(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			}
 		}
 
-		if(channelToAlert != -1) {
+		/*if(channelToAlert != -1) {
 			// TTS Dormancy alert
 			Request* r2 = new Request();
 			r2->setTimeSent();
@@ -499,10 +501,10 @@ inline void processFlags(CLAM::Channelizer* channels[], CLAM::Processing* mixers
 			r2->setPriority(10);
 			r2->setMessage(TTS_DORMANCY);
 			requestQ.push(*r2);
-		}
+		}*/
 		gettimeofday(&_dormancyInterval, 0x0);
 	}
-	dominanceCondition(channels);
+	//dominanceCondition(channels);
 }
 
 // Looks at each Speaker State, updates each channel's Floor Action State
@@ -682,75 +684,9 @@ void playBgTones(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 	}
 }
 
-/* 
-* Checks the background noise level of each channel and their speaking energy level
-* Generates an alert if:
-* 1. Background noise is above BG_NOISE_THRESHOLD
-* 2. SNR is low
-* 3. SNR is high
-
-string checkSoundLevels(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
-        ostringstream oss;
-
-	for(int i = 0; i < NUMCHANNELS; i++) {
-		// If they're speaking too soft
-		if(channels[i]->counterVu == VU_NUM_UTTERANCES) {
-			if(channels[i]->avgVuMeter > LOUD) {
-				// alert you're too loud
-				oss << "Channel " << i << " is too loud at " << channels[i]->avgVuMeter << endl;
-	 	               	//textToSpeech("You're too loud", i, channels, mixers);
-				Request* r3 = new Request();
-				r3->setTimeSent();
-				r3->setChannel(i);
-				r3->setPriority(1);
-				r3->setMessage(TTS_TOO_LOUD);
-				//requestQ.push(*r3);
-				channels[i]->pushInternalQ(*r3);
-
-			}
-			else if(channels[i]->avgVuMeter < SOFT) {
-				// alert you're too soft
-				oss << "Channel " << i << " is too soft" << endl;
-		                //textToSpeech("You're too soft", i, channels, mixers);
-				Request* r4 = new Request();
-				r4->setTimeSent();
-				r4->setChannel(i);
-				r4->setPriority(1);
-				r4->setMessage(TTS_TOO_SOFT);
-				requestQ.push(*r4);
-
-			}
-			channels[i]->avgVuMeter = 0.0;
-			channels[i]->vuMeter = 0.0;
-			channels[i]->counterVu = 0;
-		}
-
-		//if(i == 0) 
-		//	cout << "Not sp energy is " << channels[i]->avgNotSpeakingEnergy << endl;
-
-		// check everyone's background noise constantly
-		if(channels[i]->energyNotSpeakingCount >= VU_NOTSP_NUM_SAMPLES) {
-			if(channels[i]->avgNotSpeakingEnergy >= BG_LOUD) {
-				oss << "Channel " << i << " background noise is too loud at " << channels[i]->avgNotSpeakingEnergy << endl;
-		                //textToSpeech("Background noise too loud", NUMCHANNELS, channels, mixers);
-				Request* r5 = new Request();
-				r5->setTimeSent();
-				r5->setChannel(i);
-				r5->setPriority(1);
-				r5->setMessage(TTS_BG_TOO_LOUD);
-				requestQ.push(*r5);
-			}
-			channels[i]->totalNotSpeakingEnergy = 0.0;
-			channels[i]->energyNotSpeakingCount = 0;
-		}
-	}
-	return oss.str();
-}*/
-
-
-
 void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) {
 	queue<Request> q;
+	double tempTime = 0.0;
 
 // find what channel you're alerting
                 //Request r = requestQ.top();
@@ -759,55 +695,57 @@ void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) 
                 diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
                 cout << "diffTime: " << diffTime << endl;
 */
-
-        //while(!requestQ.empty()) {
-	for(int i = 0; i < requestQ.size(); i++) {
-
+	//for(int i = 0; i < requestQ.size(); i++) {
+	if(requestQ.size() > 0) {
 		// find what channel you're alerting
+		bool isBroadcast = false;
 		Request r = requestQ.top();
-		gettimeofday(&_currTime, 0x0);
-		channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[r.getChannel()]->timeOfLastAlert );
-        	diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
-		cout << "diffTime: " << diffTime << endl;
+		int numChannelsToAlert = 1;
 
-		channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[r.getChannel()]->_sessionStart);
-                double tempTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
-
-		if(diffTime >= MIN_ALERT_INTERVAL || tempTime < 10.0) {
-	       	        cout << "Request Priority: " << requestQ.top().getPriority() << " for Channel " << requestQ.top().getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
-			string msg = (string)(requestQ.top()).getMessage();
-			cout << "\tmessgae: " << msg << endl; 
-	       	 	textToSpeech(msg, requestQ.top().getChannel(), channels, mixers);
-
-			if(requestQ.top().getChannel() != NUMCHANNELS) {
-				channels[requestQ.top().getChannel()]->lastRequest = requestQ.top().getMessage();
-				//textToSpeech("Take turns", 0, channels, mixers);		
-
-				if(requestQ.top().getChannel() == NUMCHANNELS) {
-					for(int i = 0; i < NUMCHANNELS; i++) {
-						gettimeofday(&channels[i]->timeOfLastAlert, 0x0);
-					}
-				}
-				else {
-       		                         gettimeofday(&channels[r.getChannel()]->timeOfLastAlert, 0x0);
-				}
-			}
-
+		// If its a broadcast, send it out
+		if(r.getChannel() == NUMCHANNELS) {
+			cout << "Request Priority: " << r.getPriority() << " for Channel " << r.getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
+			string msg = (string)r.getMessage();
+			cout << "\tmessgae: " << msg << endl;
+			textToSpeech(msg, r.getChannel(), channels, mixers);
+			// NOTE: we are not setting timeOfLastAlert for each channel here
 			requestQ.pop();
 		}
+		// Otherwise it's a regular request: see if its ok to Alert the guy first
 		else {
-			if(requestQ.top().getMessage().compare(channels[requestQ.top().getChannel()]->lastRequest) == 0) {
-				cout << "Popping a request from the global Q because channel " << requestQ.top().getChannel() << " was already alerted this request" << endl;
+			gettimeofday(&_currTime, 0x0);
+			channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[r.getChannel()]->timeOfLastAlert );
+       		 	diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+			channels[0]->timeval_subtract(&_beepTimeDiff, &_currTime, &channels[r.getChannel()]->_sessionStart);
+			tempTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
+
+			// If it's ok to alert this channel
+			if(diffTime >= MIN_ALERT_INTERVAL && tempTime < 1.0) {
+		       	        cout << "Request Priority: " << r.getPriority() << " for Channel " << r.getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
+				string msg = (string)r.getMessage();
+				cout << "\tmessgae: " << msg << endl; 
+		       	 	textToSpeech(msg, r.getChannel(), channels, mixers);
+				channels[r.getChannel()]->lastRequest = r.getMessage();
+	       			gettimeofday(&channels[r.getChannel()]->timeOfLastAlert, 0x0);
 				requestQ.pop();
 			}
+			// it's not ok to alert this channel; move the Request to the back of the priorityQueue
 			else {
-				cout << "delaying a Request for channel " << requestQ.top().getChannel() << endl;
-				q.push(requestQ.top());
-				requestQ.pop();
+				if(r.getMessage().compare(channels[r.getChannel()]->lastRequest) == 0) {
+					// TODO: this is not correct...
+					cout << "Delaying a Request from global Q because channel " << r.getChannel() << " was already alerted this request" << endl;
+					requestQ.pop();
+				}
+				else {
+					//cout << "delaying a Request for channel " << requestQ.top().getChannel() << endl;
+					q.push(r);
+					requestQ.pop();
+				}
 			}
 		}
         }
 
+	// Move from the temp queue to the priority queue // NOTE: this just delays the message, the order is the same as before
 	while(!q.empty()) {
 		requestQ.push(q.front());
 		q.pop();
@@ -822,20 +760,22 @@ string updateFloorStuff(CLAM::Channelizer* channels[], string prevMsg, CLAM::Pro
 	string notifyMsg = "";
 
 	// Process any Request objects we have
+	//cout << "before checKifOn for processRequests" << endl;
 	if(checkIfOn(channels))
 		processRequests(channels, mixers);
+	//cout << "after checKifOn for processRequests" << endl;
 
 	// Calculates the activity level for each channel
 	calculateDominance(channels);
 
+	//cout << "before checKifOn for processFlags" << endl;
 	// If Supervisor is on, send out alerts to dominant channels
 	if(checkIfOn(channels))
 		processFlags(channels, mixers);
+	//cout << "after checKifOn for processFlags" << endl;
 	
 	// See who started talking, play their track
 	playBgTones(channels, mixers);
-
-	//notifyMsg = checkSoundLevels(channels, mixers);
 
 	updateFloorActions(channels);
 
@@ -1027,31 +967,8 @@ exit(1);*/
     		int load_init_files = 1; // we want the festival init files loaded
 		int worked = 0;*/
 
-
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
-
-
-/*while(1) {
- 	textToSpeech("Any thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Your thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Take turns", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Speak up", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Any thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Any ideas ?", 0, channels, mixers);
-	sleep(2);
-}*/
-
-			//Request* r1 = new Request();
-                        //r1->setTimeSent();
-                        //r1->setChannel(0);
-                        //r1->setPriority(10);
-                        //r1->setMessage("Take turns");
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);

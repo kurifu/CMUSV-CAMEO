@@ -47,12 +47,23 @@
 #define IS_HOLD_FLOOR(x)	(x & HOLD_FLOOR)
 #define IS_RELEASE_FLOOR(x)	(x & RELEASE_FLOOR)
 
-const string TTS_TOO_SOFT= "You're too Soft";
-const string TTS_TOO_LOUD = "You're too Loud";
-const string TTS_BG_TOO_LOUD = "Background noise too loud";
+const static string TTS_ONE_HERE = "One here";
+const static string TTS_TWO_HERE = "Two here";
+const static string TTS_THREE_HERE = "Three here";
+const static string TTS_ONE_GONE= "One gone";
+const static string TTS_TWO_GONE = "Two gone";
+const static string TTS_THREE_GONE = "Three gone";
+
+//const string TTS_TOO_SOFT= "You're too Soft";
+const string TTS_TOO_SOFT= "Louder";
+//const string TTS_TOO_LOUD = "You're too Loud";
+const string TTS_TOO_LOUD = "Loud";
+//const string TTS_BG_TOO_LOUD = "Background noise too loud";
+const string TTS_BG_TOO_LOUD = "Noisy";
 const static double LOUD = 40.0;
 const static double BG_LOUD = -25.0;
-const static double SOFT = 10.0;
+const static double MUTED = -200;
+const static double SOFT = 30.0;
 const static int VU_NUM_UTTERANCES = 1;
 const static int VU_NOTSP_NUM_SAMPLES = 500;
 
@@ -64,23 +75,29 @@ namespace CLAM
 
 	class Channelizer : public CLAM::Processing {
 
+		const static int NUMCHANNELS = 4;
 		const static float LOW_NOISE = -10.0;
 		const static float HIGH_NOISE = 0.0;
-		const static float LOWSR = 3;
+		const static float LOWSR = 35;
 		const static float HIGHSR = 20;
 		const static double UTTERANCE_LENGTH = 1.0;
 		const static int BG_NOISE_BUFFER_SIZE = 100;
-		const static int BG_NOISE_COUNT = 5;
+
+		// Number of bg noise buffers before we reset bgCounter
+		int BG_NOISE_BUFFER_COUNT;
+		const static int ORIG_BG_NOISE_BUFFER_COUNT = 5;
 
 		AudioInPort _input;
 		double _max;
 		float _average;
 		unsigned _bufferCount;
 		string _name;
-		struct timeval _starttime,_endtime,_timediff;//, _sessionStart;
+		struct timeval _starttime,_endtime,_timediff, _currenttime, _settimeBgAlert;
 		unsigned int windowSize;
 		short *pData;
-		unsigned windowSNS; //speech or no speech
+
+		// Speech or no speech
+		unsigned windowSNS;
 		float total;
 
 		// Statistics
@@ -91,18 +108,12 @@ namespace CLAM
 		int numUtterances;
 
 		// Flags
-		int tooLoudFlag;
-		int tooSoftFlag;
-		int bgNoiseFlag;
-		int oldTooSoftFlag;
-		int oldTooLoudFlag;
-		int oldBgNoiseFlag;
-		int flagCount;
-		int loudCounter;
-		int softCounter;
-		int bgCounter;
+		int tooLoudFlag, tooSoftFlag, bgNoiseFlag, oldTooSoftFlag, oldTooLoudFlag, oldBgNoiseFlag, flagCount, loudCounter, softCounter, bgCounter, muteFlag, oldMuteFlag;
 
 		public:
+
+		double BG_NOISE_REINFORCEMENT;
+		bool entered, exited;
 
 		string lastRequest;
 		struct timeval timeOfLastAlert, _sessionStart;
@@ -111,32 +122,18 @@ namespace CLAM
 		float avgNotSpeakingEnergy; //cchien total log energy noise floor (each buffer)
 		//float energyNotSpeakingCount; //cchien used in log energy noise floor average
 		int energyNotSpeakingCount; //cchien used in log energy noise floor average
-		float totalNotSpeakingEnergy;
-		float vuMeter;
-		float vuMeterNotSp;
-		float avgVuMeter;
-		float avgVuMeterNotSp;
-		int counterVu;
-		int counterNotSp;
+		float totalNotSpeakingEnergy, vuMeter, vuMeterNotSp, avgVuMeter, avgVuMeterNotSp;
+		int counterVu, counterNotSp;
 
 		// Statistics
-		int numTimesTakenFloor;
-		int numTimesNotified;
+		int numTimesTakenFloor, numTimesNotified, overlapCounter, channelNum;
 		double diffTime, totalSpeakingLength, totalSpeakingLengthNoUtterances, totalActivityLevel;
 		unsigned int totalSpeakingTurns, totalSpeakingInterrupts, totalSpeakingSuccessfulInterrupts, totalSpeakingUnsuccessfulInterrupts;
 		unsigned short state, floorAction;
-		int overlapCounter;
-		bool isDominant;
-		bool isBeingBeeped;
-		bool isGonnaGetBeeped;
-		bool newUtterance;
-		bool endOfUtterance;
-		bool bgReadyToCheck;
+		bool isDominant, isBeingBeeped, isGonnaGetBeeped, newUtterance, endOfUtterance, bgReadyToCheck;
 
-		double sessionTime;
-		int channelNum;
+		double sessionTime, logEnergy;
 		string logFileName;
-		double logEnergy;
 		// Tracks whether or not we've logged an interrupt yet, used in main's updateFloorState function for TSI
 		bool interruptLogged;
 		struct timeval _beepStartTime, _overlapTime, _currentBeepLength;
@@ -157,7 +154,11 @@ namespace CLAM
 			totalSpeakingUnsuccessfulInterrupts = 0;			// TSUI: # times unsuccessful barge in
 			_average = 0.0;		
 
+			BG_NOISE_BUFFER_COUNT = 5;
+
 			diffTime = 0.0;
+			gettimeofday(&_currenttime,0x0);
+			gettimeofday(&_settimeBgAlert,0x0);		
 			gettimeofday(&_starttime,0x0);		
 			gettimeofday(&_endtime,0x0);
 			gettimeofday(&_timediff,0x0);
@@ -200,6 +201,12 @@ namespace CLAM
 			numTimesTakenFloor = 0;
 			bgReadyToCheck = false;
 
+			muteFlag = 0;
+			oldMuteFlag = 0;
+
+			entered = false;
+			exited = false;
+
 			tooLoudFlag = 0;
 			tooSoftFlag = 0;
 			bgNoiseFlag = 0;
@@ -211,6 +218,8 @@ namespace CLAM
 			softCounter = 0;
 			bgCounter = 0;
 			lastRequest = "";
+
+			BG_NOISE_REINFORCEMENT = 20.0;
 		}
 
 
@@ -218,17 +227,15 @@ namespace CLAM
 		 * Process Flags to populate internal queue
 		 */
 		void processFlags() {
-
-			/*
 			// Only create a Too Soft request if the condition is met
-			if (tooSoftCondition()) {
-			Request* r1 = new Request();
-			r1->setTimeSent();
-			r1->setChannel(channelNum-1);
-			r1->setPriority(1);
-			r1->setMessage(TTS_TOO_SOFT);
-			internalQ.push(*r1);
-			}
+			/*if (tooSoftCondition()) {
+			  Request* r1 = new Request();
+			  r1->setTimeSent();
+			  r1->setChannel(channelNum-1);
+			  r1->setPriority(1);
+			  r1->setMessage(TTS_TOO_SOFT);
+			  internalQ.push(*r1);
+			  }
 
 			//if (tooLoudFlag) {
 			else if (tooLoudCondition()) {
@@ -237,38 +244,128 @@ namespace CLAM
 			r2->setPriority(1);
 			r2->setMessage(TTS_TOO_LOUD);
 			internalQ.push(*r2);
-
 			}*/
+
+			Request* rBg = NULL;
 			if (bgNoiseCondition()) {
 				cout << "making a BG Noise request" << endl;
-				Request* r3 = new Request();
-				r3->setTimeSent();
-				r3->setChannel(channelNum-1);
-				r3->setPriority(1);
-				r3->setMessage(TTS_BG_TOO_LOUD);
-				internalQ.push(*r3);
+				rBg = new Request();
+				rBg->setTimeSent();
+				rBg->setChannel(channelNum-1);
+				rBg->setPriority(1);
+				rBg->setMessage(TTS_BG_TOO_LOUD);
+				internalQ.push(*rBg);
 			}
 
-			endOfUtterance = false;
+			if (entryExitCondition()) {
+				if (entered) {
+					cout << "making an Entry request" << endl;
+					Request* r = new Request();
+					r->setTimeSent();
+					r->setChannel(NUMCHANNELS);
+					r->setPriority(1);
+					if (channelNum == 1) r->setMessage(TTS_ONE_HERE);
+					if (channelNum == 2) r->setMessage(TTS_TWO_HERE);
+					if (channelNum == 3) r->setMessage(TTS_THREE_HERE);
+					internalQ.push(*r);
+				}
+				else if (exited) {
+					cout << "making an Exit request" << endl;
+					Request* r2 = new Request();
+					r2->setTimeSent();
+					r2->setChannel(NUMCHANNELS);
+					r2->setPriority(1);
+					if (channelNum == 1) r2->setMessage(TTS_ONE_GONE);
+					if (channelNum == 2) r2->setMessage(TTS_TWO_GONE);
+					if (channelNum == 3) r2->setMessage(TTS_THREE_GONE);
+					internalQ.push(*r2);
+				}
+			}
+			endOfUtterance = false; //for tooSoft and tooLoud
 			processRequests();
+		}
+
+		int entryExitCondition() {
+			// Someone Exited	
+			if(muteFlag == 1 && oldMuteFlag == 0) {
+				oldMuteFlag = 1;
+				exited = true;
+				entered = false;	
+				return 1;
+			}
+			// No one here
+			else if(muteFlag == 1 && oldMuteFlag == 1) {
+				exited = false;
+				entered = false;
+				return 0;
+			}
+			// Someone Entered
+			else if(muteFlag == 0 && oldMuteFlag == 1) {
+				oldMuteFlag = 0;
+				exited = false;
+				entered = true;
+				return 1;
+			} 
+			// Someone Here
+			else if(muteFlag == 0 && oldMuteFlag == 0) {
+				entered = false;
+				exited = false;
+				return 0;
+			}
 		}
 
 		int bgNoiseCondition() {
 			if (bgReadyToCheck) {
+				if(channelNum == 1) {
+                                	cout << "bgCounter: " << bgCounter << endl;
+                                }
+				// bgNoise is beginning to be loud
 				if(oldBgNoiseFlag == 0 && bgNoiseFlag == 1) {
 					bgCounter = 1;
 					oldBgNoiseFlag = bgNoiseFlag;
 				}
+				// bgNoise is continuing to be loud
 				else if(oldBgNoiseFlag == 1 && bgNoiseFlag == 1) {
 					bgCounter++;
 				}
+				// bgNoise is no longer loud
 				else {
+					if(channelNum == 1) {
+						cout << "Resetting bgCounter" << endl;
+					}
 					oldBgNoiseFlag = 0;
 					bgCounter = 0;
 				}
 
-				if(bgCounter >= BG_NOISE_COUNT) {
+				// Check the counter
+				if(bgCounter >= BG_NOISE_BUFFER_COUNT) {
+					// Check Timer
+                                	gettimeofday(&_currenttime,0x0);
+                                	timeval_subtract(&_timediff, &_currenttime, &_settimeBgAlert);
+                                	diffTime = (double)_timediff.tv_sec + (double)0.001*_timediff.tv_usec/1000; //time in sec.ms
+						
+					cout << "Time since last BG alert: " << diffTime << endl;
+					// If Timer run down then reset the threshold
+                                	if (diffTime >= BG_NOISE_REINFORCEMENT) {
+						BG_NOISE_BUFFER_COUNT = ORIG_BG_NOISE_BUFFER_COUNT;
+						if(channelNum == 1) {
+                                               	 	cout << "Resetting BG_NOISE_BUFFER_COUNT to original value" << endl;
+                                        	}
+					}
+					// Else threshold = BG_COUNT * 1.5; (re)start timer
+					else {
+						BG_NOISE_BUFFER_COUNT *= 1.5;
+						if(channelNum == 1) {
+                                                        cout << "Incrementing BG_NOISE_BUFFER_COUNT" << endl;
+                                                }
+					}
+					// To calculate time since last alert
+					gettimeofday(&_settimeBgAlert,0x0);
 					bgCounter = 0;
+					if(channelNum == 1) {
+                                                cout << "BG_NOISE_BUFFER_COUNT is" << BG_NOISE_BUFFER_COUNT << endl;
+                                        }
+
 					return 1;
 				}
 				bgReadyToCheck = false;
@@ -326,7 +423,7 @@ namespace CLAM
 					//cout << "Resetting flags, oldTooSoftFlag is " << oldTooSoftFlag << ", tooSoftFlag is " << tooSoftFlag << endl;
 				}
 
-				if (softCounter == 3) {
+				if (softCounter == 1) {
 					softCounter = 0;
 					return 1;
 				}
@@ -347,6 +444,7 @@ namespace CLAM
 				Request r = internalQ.top();
 				internalQ.pop();
 				globalQ->push(r);
+				cout << "Pushed a Request to globalQ: target is " << r.getChannel() << ", msg is " << r.getMessage() << ", sender is " << channelNum << endl;
 			}
 		}
 
@@ -421,21 +519,26 @@ namespace CLAM
 				if (current<-_max) _max=-current;
 			}
 			logEnergy = 60 + 20*log(_max);
-			if (logEnergy > 0) { //previously 15 
+			if (logEnergy > 10) { //previously 15 
 				bufferSNS = 1;
 				totalSpeakingEnergy += logEnergy;
 				currentSpeakingEnergy = logEnergy;
 				energySpeakingCount++; // used in log energy average
+				muteFlag = 0;
+			}
+			else if(logEnergy < MUTED) {
+				muteFlag = 1;
+
 			}
 			else {
 				totalNotSpeakingEnergy += logEnergy;
 				energyNotSpeakingCount++;
-
+				muteFlag = 0;	
 
 				//if((channelNum == 1) && (energyNotSpeakingCount % 200))
 				// 	cout << "AvgBgNoise: " << avgNotSpeakingEnergy << endl;
 				//if((channelNum == 1) && energyNotSpeakingCount >= BG_NOISE_BUFFER_SIZE) {
-					//cout << "AvgBgNoise: " << avgNotSpeakingEnergy << endl;
+				//cout << "AvgBgNoise: " << avgNotSpeakingEnergy << endl;
 				//}
 			}
 			_bufferCount++;
@@ -498,7 +601,8 @@ namespace CLAM
 				checkSoundLevels();
 			}
 
-			calculateBg();
+			if(channelNum == 1)
+				calculateBg();
 			processFlags();
 
 			gettimeofday(&_endtime,0x0);		
@@ -535,187 +639,191 @@ namespace CLAM
 			if(energyNotSpeakingCount >= BG_NOISE_BUFFER_SIZE) {
 
 				avgNotSpeakingEnergy = totalNotSpeakingEnergy / energyNotSpeakingCount;
+				/*if(avgNotSpeakingEnergy <= MUTED) {
+				  exit = true;
+				  cout << "Muted" << endl;
+				  }*/
 				//if(channelNum == 1)
 				//      cout << "AvgBgNoise: " << avgNotSpeakingEnergy << endl;
-				//}
-			if(avgNotSpeakingEnergy >= BG_LOUD) {
-				bgNoiseFlag = 1;
-				cout << "Too loud" << endl;
+
+				if(avgNotSpeakingEnergy >= BG_LOUD) {
+					bgNoiseFlag = 1;
+					cout << "Background noise too loud" << endl;
+				}
+				else {
+					bgNoiseFlag = 0;
+				}
+				//cout << "Resetting energyNotSpeakingCount and totalNotSpeakingEnergy" << endl;
+				energyNotSpeakingCount = 0;
+				totalNotSpeakingEnergy = 0;
+				bgReadyToCheck = true;
 			}
-			else {
-				bgNoiseFlag = 0;
+		}
+
+		int timeval_subtract ( struct timeval *result, struct timeval *x, struct timeval *y) {
+			struct timeval temp = *y;
+			/* Perform the carry for the later subtraction by updating y. */
+			if (x->tv_usec < y->tv_usec) {
+				int nsec = (y->tv_usec - x->tv_usec) / 1000000L + 1;
+				y->tv_usec -= 1000000L * nsec;
+				y->tv_sec += nsec;
 			}
-			//cout << "Resetting energyNotSpeakingCount and totalNotSpeakingEnergy" << endl;
-			energyNotSpeakingCount = 0;
-			totalNotSpeakingEnergy = 0;
-			bgReadyToCheck = true;
-		}
-	}
+			if (x->tv_usec - y->tv_usec > 1000000L) {
+				int nsec = (y->tv_usec - x->tv_usec) / 1000000L;
+				y->tv_usec += 1000000L * nsec;
+				y->tv_sec -= nsec;
+			}
 
-	int timeval_subtract ( struct timeval *result, struct timeval *x, struct timeval *y) {
-		struct timeval temp = *y;
-		/* Perform the carry for the later subtraction by updating y. */
-		if (x->tv_usec < y->tv_usec) {
-			int nsec = (y->tv_usec - x->tv_usec) / 1000000L + 1;
-			y->tv_usec -= 1000000L * nsec;
-			y->tv_sec += nsec;
-		}
-		if (x->tv_usec - y->tv_usec > 1000000L) {
-			int nsec = (y->tv_usec - x->tv_usec) / 1000000L;
-			y->tv_usec += 1000000L * nsec;
-			y->tv_sec -= nsec;
+			/* Compute the time remaining to wait.
+			   tv_usec is certainly positive. */
+			result->tv_sec = x->tv_sec - y->tv_sec;
+			result->tv_usec = x->tv_usec - y->tv_usec;
+			y->tv_sec = temp.tv_sec;
+			y->tv_usec = temp.tv_usec;
+
+			/* Return 1 if result is negative. */
+			return x->tv_sec < y->tv_sec;
 		}
 
-		/* Compute the time remaining to wait.
-		   tv_usec is certainly positive. */
-		result->tv_sec = x->tv_sec - y->tv_sec;
-		result->tv_usec = x->tv_usec - y->tv_usec;
-		y->tv_sec = temp.tv_sec;
-		y->tv_usec = temp.tv_usec;
 
-		/* Return 1 if result is negative. */
-		return x->tv_sec < y->tv_sec;
-	}
-
-
-	void SetPName(string d) {
-		_name = d;
-	}
-
-	const char* GetClassName() const {
-		return "Channelizer";
-	}
-
-	string getPName() {
-		return _name;
-	}
-
-	void setFileName(string name) {
-		logFileName = name;
-	}
-
-	inline void printSpeakerStats() {
-		cout << endl << "\t" << _name << " spoke for " << diffTime << " secs\n";
-		cout << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
-		cout << "\t" << _name << " TSLNoU (total speaking length no utterances): " << totalSpeakingLengthNoUtterances << " secs\n";
-		cout << "\t" << _name << " TSI (total speaking interrupts): " << totalSpeakingInterrupts << " times\n";
-		cout << "\t" << _name << " TSI (total speaking unsuccessful interrupts): " << totalSpeakingUnsuccessfulInterrupts << " times\n";
-		cout << "\t" << _name << " Dominance Percentage: " << totalActivityLevel << "%\n";
-		cout << "\t" << _name << " Is Dominant: ";
-		(isDominant) ? cout << "YES\n" : cout << "NO\n";
-		cout << "\t" << "Avg Speaking Energy: " << avgSpeakingEnergy << "\n";
-		cout << "\t" << "Avg Background Energy: " << avgNotSpeakingEnergy << "\n";
-		cout << "\t" << "Number of Times Taken Floor: " << numTimesTakenFloor << "\n";
-		cout << "\t\t" << "Number of Times Notified: " << numTimesNotified << "\n";
-		cout << "\t" << _name << " Session Time: " << sessionTime << " sec\n";
-	}
-
-	/**
-	 * Sends the current speaker's statistics to our Rails/Faye server to broadcast to all users
-	 * The order in which the statistics are sent are very important, and must be in this specific order:
-	 * Channel Number, Speaking Length, TSL, TSLNoU, TSI, TSSI, TSUI, Dominance Percentage, Is Dominant
-	 */
-	inline void sendSpeakerStats() {
-		cout << "** Sending data" << endl;
-		xmlrpc_c::clientXmlTransport_curl myTransport;
-		xmlrpc_c::client_xml myClient(&myTransport);
-		string const methodName("get_data_rpc");
-		string const serverUrl("http://localhost:3000/main/get_data_rpc");
-		try {
-			xmlrpc_c::paramList sampleAddParms1;
-			sampleAddParms1.add(xmlrpc_c::value_int(channelNum));
-			sampleAddParms1.add(xmlrpc_c::value_double(diffTime));
-			sampleAddParms1.add(xmlrpc_c::value_double(totalSpeakingLength));
-			sampleAddParms1.add(xmlrpc_c::value_double(totalSpeakingLengthNoUtterances));
-			sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingInterrupts));
-			sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingSuccessfulInterrupts));
-			sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingUnsuccessfulInterrupts));
-			sampleAddParms1.add(xmlrpc_c::value_double(totalActivityLevel));
-			sampleAddParms1.add(xmlrpc_c::value_boolean(isDominant));
-			// TODO: add new stats 
-			// Num times notified here
-			// Num times taken floor here
-
-			xmlrpc_c::rpcPtr rpc1P(methodName, sampleAddParms1);
-			xmlrpc_c::carriageParm_curl0 myCarriageParm(serverUrl);
-			rpc1P->start(&myClient, &myCarriageParm);
-			myClient.finishAsync(xmlrpc_c::timeout()); // infinite timeout?
-			assert(rpc1P->isFinished());
+		void SetPName(string d) {
+			_name = d;
 		}
-		catch (exception const& e) {
-			cout << "Client threw error: " << e.what() << endl;
+
+		const char* GetClassName() const {
+			return "Channelizer";
 		}
-		catch (...) {
-			cout << "Client threw unexpected error." << endl;
+
+		string getPName() {
+			return _name;
 		}
-	}
 
-	// Writes this channelizer's statistics to the logfile specified in the Supervisor
-	inline void writeSpeakerStats() {
-		ofstream logFile;
-		logFile.open(logFileName.c_str(), ios::app);//, ios::app);
+		void setFileName(string name) {
+			logFileName = name;
+		}
 
-		logFile.setf(ios_base::fixed);
-		logFile.precision(7);
+		inline void printSpeakerStats() {
+			cout << endl << "\t" << _name << " spoke for " << diffTime << " secs\n";
+			cout << "\t" << _name << " TSL (total speaking length): " << totalSpeakingLength << " secs\n";
+			cout << "\t" << _name << " TSLNoU (total speaking length no utterances): " << totalSpeakingLengthNoUtterances << " secs\n";
+			cout << "\t" << _name << " TSI (total speaking interrupts): " << totalSpeakingInterrupts << " times\n";
+			cout << "\t" << _name << " TSI (total speaking unsuccessful interrupts): " << totalSpeakingUnsuccessfulInterrupts << " times\n";
+			cout << "\t" << _name << " Dominance Percentage: " << totalActivityLevel << "%\n";
+			cout << "\t" << _name << " Is Dominant: ";
+			(isDominant) ? cout << "YES\n" : cout << "NO\n";
+			cout << "\t" << "Avg Speaking Energy: " << avgSpeakingEnergy << "\n";
+			cout << "\t" << "Avg Background Energy: " << avgNotSpeakingEnergy << "\n";
+			cout << "\t" << "Number of Times Taken Floor: " << numTimesTakenFloor << "\n";
+			cout << "\t\t" << "Number of Times Notified: " << numTimesNotified << "\n";
+			cout << "\t" << _name << " Session Time: " << sessionTime << " sec\n";
+		}
 
-		// CurrTime, ChannelName, Speaking Length, TSL, TSLNoU, TSI, Dom%, IsDominant, AvgSpeakingEnergy, AvgNotSpeakingEnergy, NumTimesTakenFloor, NumTimesNotified, TotalSessionTime
-		logFile << getDate() << "\t";
-		logFile <<  _name << "\t";
-		logFile << diffTime << "\t";
-		logFile << totalSpeakingLength << "\t";
-		logFile << totalSpeakingLengthNoUtterances << "\t";
-		logFile << totalSpeakingInterrupts << "\t";
-		logFile << totalActivityLevel << "\t";
-		(isDominant) ? logFile << "YES\t" : logFile << "NO\t";
-		logFile << avgSpeakingEnergy << "\t";
-		logFile << avgNotSpeakingEnergy << "\t";
-		logFile << numTimesTakenFloor << "\t";
-		logFile << numTimesNotified << "\t";
-		logFile << sessionTime << "\n";
-		logFile.close();
-	}
+		/**
+		 * Sends the current speaker's statistics to our Rails/Faye server to broadcast to all users
+		 * The order in which the statistics are sent are very important, and must be in this specific order:
+		 * Channel Number, Speaking Length, TSL, TSLNoU, TSI, TSSI, TSUI, Dominance Percentage, Is Dominant
+		 */
+		inline void sendSpeakerStats() {
+			cout << "** Sending data" << endl;
+			xmlrpc_c::clientXmlTransport_curl myTransport;
+			xmlrpc_c::client_xml myClient(&myTransport);
+			string const methodName("get_data_rpc");
+			string const serverUrl("http://localhost:3000/main/get_data_rpc");
+			try {
+				xmlrpc_c::paramList sampleAddParms1;
+				sampleAddParms1.add(xmlrpc_c::value_int(channelNum));
+				sampleAddParms1.add(xmlrpc_c::value_double(diffTime));
+				sampleAddParms1.add(xmlrpc_c::value_double(totalSpeakingLength));
+				sampleAddParms1.add(xmlrpc_c::value_double(totalSpeakingLengthNoUtterances));
+				sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingInterrupts));
+				sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingSuccessfulInterrupts));
+				sampleAddParms1.add(xmlrpc_c::value_int(totalSpeakingUnsuccessfulInterrupts));
+				sampleAddParms1.add(xmlrpc_c::value_double(totalActivityLevel));
+				sampleAddParms1.add(xmlrpc_c::value_boolean(isDominant));
+				// TODO: add new stats 
+				// Num times notified here
+				// Num times taken floor here
 
-	// Returns the current date and local time
-	string getDate() {
-		time_t rawtime;
-		struct tm* timeinfo;
-		int year, month, day;
-		time(&rawtime);
-		timeinfo = localtime(&rawtime);
-		mktime(timeinfo);
-		stringstream currTime, fileName;
-		currTime << timeinfo->tm_hour << ":" << timeinfo->tm_min << ":" << timeinfo->tm_sec << "_" << timeinfo->tm_mon << "_" << timeinfo->tm_mday << "_" << (timeinfo->tm_year+1900);
-		return currTime.str();
-	}
+				xmlrpc_c::rpcPtr rpc1P(methodName, sampleAddParms1);
+				xmlrpc_c::carriageParm_curl0 myCarriageParm(serverUrl);
+				rpc1P->start(&myClient, &myCarriageParm);
+				myClient.finishAsync(xmlrpc_c::timeout()); // infinite timeout?
+				assert(rpc1P->isFinished());
+			}
+			catch (exception const& e) {
+				cout << "Client threw error: " << e.what() << endl;
+			}
+			catch (...) {
+				cout << "Client threw unexpected error." << endl;
+			}
+		}
 
-	void reset() {
-		avgSpeakingEnergy = 0.0;
-		energySpeakingCount = 0.0;
-		avgNotSpeakingEnergy = 0.0;
-		energyNotSpeakingCount = 0.0;
-		totalSpeakingEnergy = 0.0;
-		totalNotSpeakingEnergy = 0.0;
-		numUtterances = 0;
+		// Writes this channelizer's statistics to the logfile specified in the Supervisor
+		inline void writeSpeakerStats() {
+			ofstream logFile;
+			logFile.open(logFileName.c_str(), ios::app);//, ios::app);
 
-		numTimesTakenFloor = 0;
-		numTimesNotified = 0;
-		totalSpeakingLength = 0.0;
-		totalSpeakingLengthNoUtterances = 0.0;
-		totalActivityLevel = 0.0;
-		totalSpeakingTurns = 0;
-		totalSpeakingInterrupts = 0; 
-		totalSpeakingSuccessfulInterrupts = 0; 
-		totalSpeakingUnsuccessfulInterrupts = 0;
+			logFile.setf(ios_base::fixed);
+			logFile.precision(7);
 
-		overlapCounter = 0;
-		isDominant = false;
-		isBeingBeeped = false;
-		isGonnaGetBeeped = false;
+			// CurrTime, ChannelName, Speaking Length, TSL, TSLNoU, TSI, Dom%, IsDominant, AvgSpeakingEnergy, AvgNotSpeakingEnergy, NumTimesTakenFloor, NumTimesNotified, TotalSessionTime
+			logFile << getDate() << "\t";
+			logFile <<  _name << "\t";
+			logFile << diffTime << "\t";
+			logFile << totalSpeakingLength << "\t";
+			logFile << totalSpeakingLengthNoUtterances << "\t";
+			logFile << totalSpeakingInterrupts << "\t";
+			logFile << totalActivityLevel << "\t";
+			(isDominant) ? logFile << "YES\t" : logFile << "NO\t";
+			logFile << avgSpeakingEnergy << "\t";
+			logFile << avgNotSpeakingEnergy << "\t";
+			logFile << numTimesTakenFloor << "\t";
+			logFile << numTimesNotified << "\t";
+			logFile << sessionTime << "\n";
+			logFile.close();
+		}
 
-		numTimesNotified = 0;
-	}
+		// Returns the current date and local time
+		string getDate() {
+			time_t rawtime;
+			struct tm* timeinfo;
+			int year, month, day;
+			time(&rawtime);
+			timeinfo = localtime(&rawtime);
+			mktime(timeinfo);
+			stringstream currTime, fileName;
+			currTime << timeinfo->tm_hour << ":" << timeinfo->tm_min << ":" << timeinfo->tm_sec << "_" << timeinfo->tm_mon << "_" << timeinfo->tm_mday << "_" << (timeinfo->tm_year+1900);
+			return currTime.str();
+		}
 
-};
+		void reset() {
+			avgSpeakingEnergy = 0.0;
+			energySpeakingCount = 0.0;
+			avgNotSpeakingEnergy = 0.0;
+			energyNotSpeakingCount = 0.0;
+			totalSpeakingEnergy = 0.0;
+			totalNotSpeakingEnergy = 0.0;
+			numUtterances = 0;
+
+			numTimesTakenFloor = 0;
+			numTimesNotified = 0;
+			totalSpeakingLength = 0.0;
+			totalSpeakingLengthNoUtterances = 0.0;
+			totalActivityLevel = 0.0;
+			totalSpeakingTurns = 0;
+			totalSpeakingInterrupts = 0; 
+			totalSpeakingSuccessfulInterrupts = 0; 
+			totalSpeakingUnsuccessfulInterrupts = 0;
+
+			overlapCounter = 0;
+			isDominant = false;
+			isBeingBeeped = false;
+			isGonnaGetBeeped = false;
+
+			numTimesNotified = 0;
+		}
+
+	};
 
 } //namespace
 
