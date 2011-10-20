@@ -219,7 +219,7 @@ namespace CLAM
 			bgCounter = 0;
 			lastRequest = "";
 
-			BG_NOISE_REINFORCEMENT = 20.0;
+			BG_NOISE_REINFORCEMENT = 60.0;
 		}
 
 
@@ -338,6 +338,7 @@ namespace CLAM
 				}
 
 				// Check the counter
+				// NOTE: BG_NOISE_REINFORCEMENT and BG_NOISE_BUFFER_COUNT reset themselves the next time you get noisy
 				if(bgCounter >= BG_NOISE_BUFFER_COUNT) {
 					// Check Timer
                                 	gettimeofday(&_currenttime,0x0);

@@ -695,8 +695,8 @@ void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) 
                 diffTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
                 cout << "diffTime: " << diffTime << endl;
 */
-	//for(int i = 0; i < requestQ.size(); i++) {
-	if(requestQ.size() > 0) {
+	for(int i = 0; i < requestQ.size(); i++) {
+	//if(requestQ.size() > 0) {
 		// find what channel you're alerting
 		bool isBroadcast = false;
 		Request r = requestQ.top();
@@ -709,7 +709,10 @@ void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) 
 			cout << "\tmessgae: " << msg << endl;
 			textToSpeech(msg, r.getChannel(), channels, mixers);
 			// NOTE: we are not setting timeOfLastAlert for each channel here
-			requestQ.pop();
+			if(requestQ.size() != 0)
+				requestQ.pop();
+			else
+				cout << "Tried popping an empty Q 1" << endl;
 		}
 		// Otherwise it's a regular request: see if its ok to Alert the guy first
 		else {
@@ -720,26 +723,38 @@ void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) 
 			tempTime = (double)_beepTimeDiff.tv_sec + (double)0.001*_beepTimeDiff.tv_usec/1000;
 
 			// If it's ok to alert this channel
-			if(diffTime >= MIN_ALERT_INTERVAL && tempTime < 1.0) {
+			if(diffTime >= MIN_ALERT_INTERVAL && tempTime > 1.0) {
 		       	        cout << "Request Priority: " << r.getPriority() << " for Channel " << r.getChannel() << ", number of msgs in Q:" << requestQ.size() << endl;
 				string msg = (string)r.getMessage();
 				cout << "\tmessgae: " << msg << endl; 
 		       	 	textToSpeech(msg, r.getChannel(), channels, mixers);
 				channels[r.getChannel()]->lastRequest = r.getMessage();
 	       			gettimeofday(&channels[r.getChannel()]->timeOfLastAlert, 0x0);
-				requestQ.pop();
+
+				if(requestQ.size() != 0)
+					requestQ.pop();
+				else
+					cout << "Tried popping an empty Q 2" << endl;
 			}
 			// it's not ok to alert this channel; move the Request to the back of the priorityQueue
 			else {
 				if(r.getMessage().compare(channels[r.getChannel()]->lastRequest) == 0) {
 					// TODO: this is not correct...
 					cout << "Delaying a Request from global Q because channel " << r.getChannel() << " was already alerted this request" << endl;
-					requestQ.pop();
+
+					if(requestQ.size() != 0)
+						requestQ.pop();
+					else
+						cout << "Tried popping an empty Q 2" << endl;
 				}
 				else {
 					//cout << "delaying a Request for channel " << requestQ.top().getChannel() << endl;
 					q.push(r);
-					requestQ.pop();
+	
+					if(requestQ.size() != 0)
+						requestQ.pop();
+					else
+						cout << "Tried popping an empty Q 2" << endl;
 				}
 			}
 		}
@@ -747,6 +762,7 @@ void processRequests(CLAM::Channelizer* channels[], CLAM::Processing* mixers[]) 
 
 	// Move from the temp queue to the priority queue // NOTE: this just delays the message, the order is the same as before
 	while(!q.empty()) {
+		//cout << "Shuffling one request" << endl;
 		requestQ.push(q.front());
 		q.pop();
 	}
