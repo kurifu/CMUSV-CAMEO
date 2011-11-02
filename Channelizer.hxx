@@ -257,7 +257,7 @@ namespace CLAM
 				internalQ.push(*rBg);
 			}
 
-			if (entryExitCondition()) {
+			/*if (entryExitCondition()) {
 				if (entered) {
 					cout << "making an Entry request" << endl;
 					Request* r = new Request();
@@ -280,7 +280,7 @@ namespace CLAM
 					if (channelNum == 3) r2->setMessage(TTS_THREE_GONE);
 					internalQ.push(*r2);
 				}
-			}
+			}*/
 			endOfUtterance = false; //for tooSoft and tooLoud
 			processRequests();
 		}
@@ -602,8 +602,7 @@ namespace CLAM
 				checkSoundLevels();
 			}
 
-			if(channelNum == 1)
-				calculateBg();
+			calculateBg();
 			processFlags();
 
 			gettimeofday(&_endtime,0x0);		
