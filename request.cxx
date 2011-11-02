@@ -1,12 +1,18 @@
 #include <string>
 #include <sys/time.h>
 #include "request.hxx"
+#include <iostream>
+using namespace std;
+
 
 void Request::setTimeSent() {
-        gettimeofday(&timeSent, 0x0);
+ 	time_t rawtime;
+        time(&rawtime);
+        timeSent = localtime(&rawtime);
+        mktime(timeSent);
 }
 
-struct timeval Request::getTimeSent() {
+struct tm* Request::getTimeSent() {
 	return timeSent;
 }
 
