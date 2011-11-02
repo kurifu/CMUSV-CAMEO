@@ -33,7 +33,6 @@
 
 /* Festival */
 #include "/usr/include/festival/festival.h"
-
 #include "request.hxx"
 #include <queue>
 #include "PriorityModel.hxx"
@@ -820,22 +819,6 @@ int main( int argc, char* argv[] ) {
 
 	try {
 
-/*Request r1;
-r1.setPriority(10);
-Request r2;
-r2.setPriority(1);
-Request r3;
-r3.setPriority(7);
-requestQ.push(r3);
-requestQ.push(r2);
-requestQ.push(r1);
-while(!requestQ.empty()) {
-	cout << requestQ.top().getPriority() << endl;
-	requestQ.pop();
-}
-
-exit(1);*/
-
 /*******************************************************************/
 /*-----------------------------SETUP-------------------------------*/
 /*******************************************************************/
@@ -959,35 +942,8 @@ exit(1);*/
 		gettimeofday(&_dormancyInterval, 0x0);
 		runLoginManager();
 
-   		/*int heap_size = 21000000;  // default scheme heap size
-    		int load_init_files = 1; // we want the festival init files loaded
-		int worked = 0;*/
-
-
     		festival_initialize(load_init_files,heap_size);
 	        textToSpeech("Welcome to the Supervisor Conference Call System", NUMCHANNELS, channels, mixers);
-
-
-/*while(1) {
- 	textToSpeech("Any thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Your thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Take turns", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Speak up", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Any thoughts ?", 0, channels, mixers);
-	sleep(2);
- 	textToSpeech("Any ideas ?", 0, channels, mixers);
-	sleep(2);
-}*/
-
-			//Request* r1 = new Request();
-                        //r1->setTimeSent();
-                        //r1->setChannel(0);
-                        //r1->setPriority(10);
-                        //r1->setMessage("Take turns");
 
 		while(1) {		
 			prevMsg = updateFloorStuff(channels, prevMsg, mixers);
