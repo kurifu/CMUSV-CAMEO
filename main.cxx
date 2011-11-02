@@ -33,7 +33,6 @@
 
 /* Festival */
 #include "/usr/include/festival/festival.h"
-
 #include "request.hxx"
 #include <queue>
 #include "PriorityModel.hxx"
@@ -783,10 +782,8 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				string notifyMsg = "";
 
 				// Process any Request objects we have
-				//cout << "before checKifOn for processRequests" << endl;
 				if(checkIfOn(channels))
 					processRequests(channels, mixers);
-				//cout << "after checKifOn for processRequests" << endl;
 
 				// Calculates the activity level for each channel
 				calculateDominance(channels);
@@ -795,7 +792,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				// If Supervisor is on, send out alerts to dominant channels
 				if(checkIfOn(channels))
 					processFlags(channels, mixers);
-				//cout << "after checKifOn for processFlags" << endl;
 
 				// See who started talking, play their track
 				playBgTones(channels, mixers);
@@ -835,22 +831,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 				}
 
 				try {
-
-					/*Request r1;
-					  r1.setPriority(10);
-					  Request r2;
-					  r2.setPriority(1);
-					  Request r3;
-					  r3.setPriority(7);
-					  requestQ.push(r3);
-					  requestQ.push(r2);
-					  requestQ.push(r1);
-					  while(!requestQ.empty()) {
-					  cout << requestQ.top().getPriority() << endl;
-					  requestQ.pop();
-					  }
-
-					  exit(1);*/
 
 					/*******************************************************************/
 					/*-----------------------------SETUP-------------------------------*/
@@ -895,7 +875,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 
 
 					CLAM::Processing& generator = network.GetProcessing("Generator");
-
 
 					CLAM::Processing& mic = network.GetProcessing("AudioSource");
 					CLAM::Channelizer& myp1 = (CLAM::Channelizer&) network.GetProcessing("Channelizer");
@@ -943,8 +922,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 					myp3.GetInPort("Input").SetSize(winSize);	
 					myp4.GetInPort("Input").SetSize(winSize);	
 
-					//JACK CODE
-					//jack_client_t * jackClient;
 					string jackClientName;
 					jack_status_t jackStatus;
 					jackClient = jack_client_open ( "test", JackNullOption, &jackStatus );
@@ -995,8 +972,6 @@ string updateFloorState(CLAM::Channelizer* channels[], CLAM::Processing* mixers[
 
 					while(1) {		
 						prevMsg = updateFloorStuff(channels, prevMsg, mixers);
-						//adjustAmps(channels, amps);
-						//playTracks(channels, tracks);
 					}
 					delete [] channels;
 					delete [] mixers;
