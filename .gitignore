@@ -2,7 +2,10 @@
 *.swp
 *.plot
 *.o
-MyProgram
+MyProgram*
 *.log
 .sconsign.dblite
 *.mp3
+*.wav
+logs/*
+config.txt
